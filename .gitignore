@@ -1,0 +1,13 @@
+.vs/
+include/
+lib/
+x64/
+RTMP_Push/rtmp_push.log/
+RTMP_Push/x64/
+RTMP_Push/*.dll
+RTMP_Push/*.aac
+RTMP_Push/*.h264
+RTMP_Push/*pcm
+RTMP_Push/*.yuv
+RTMP_Push/*.mkv
+RTMP_Push/*.docx

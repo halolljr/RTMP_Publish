@@ -1,0 +1,196 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>17.0</VCProjectVersion>
+    <Keyword>Win32Proj</Keyword>
+    <ProjectGuid>{737e718b-67d5-4bd2-b4fc-64d14ef761b1}</ProjectGuid>
+    <RootNamespace>RTMPPush</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <IncludePath>D:\Alearn\ACPP\store\YSP\Stream Learn\Exer\RTMP_Learn\RTMP_Push\librtmp;D:\Alearn\ACPP\store\YSP\Stream Learn\Exer\RTMP_Learn\RTMP_Push\src;D:\Alearn\ACPP\store\YSP\Stream Learn\Exer\RTMP_Learn\RTMP_Push\head;$(IncludePath)</IncludePath>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>false</SDLCheck>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>D:\Alearn\ACPP\store\YSP\Stream Learn\Exer\RTMP_Learn\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>D:\Alearn\ACPP\store\YSP\Stream Learn\Exer\RTMP_Learn\lib\SDL2;D:\Alearn\ACPP\store\YSP\Stream Learn\Exer\RTMP_Learn\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>avcodec.lib;avdevice.lib;avfilter.lib;avformat.lib;avutil.lib;swresample.lib;swscale.lib;SDL2.lib;SDL2main.lib;SDL2test.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="librtmp\amf.c" />
+    <ClCompile Include="librtmp\hashswf.c" />
+    <ClCompile Include="librtmp\log.c" />
+    <ClCompile Include="librtmp\parseurl.c" />
+    <ClCompile Include="librtmp\rtmp.c" />
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="src\aacencoder.cpp" />
+    <ClCompile Include="src\aacrtmppackager.cpp" />
+    <ClCompile Include="src\audiocapturer.cpp" />
+    <ClCompile Include="src\audioresample.cpp" />
+    <ClCompile Include="src\avtimebase.cpp" />
+    <ClCompile Include="src\commonlooper.cpp" />
+    <ClCompile Include="src\dlog.cpp" />
+    <ClCompile Include="src\h264encoder.cpp" />
+    <ClCompile Include="src\imagescale.cpp" />
+    <ClCompile Include="src\looper.cpp" />
+    <ClCompile Include="src\mediabase.cpp" />
+    <ClCompile Include="src\naluloop.cpp" />
+    <ClCompile Include="src\pushwork.cpp" />
+    <ClCompile Include="src\rtmpbase.cpp" />
+    <ClCompile Include="src\rtmppusher.cpp" />
+    <ClCompile Include="src\rtmp_publish.cpp" />
+    <ClCompile Include="src\videocapturer.cpp" />
+    <ClCompile Include="src\videooutsdl.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="head\aacencoder.h" />
+    <ClInclude Include="head\aacrtmppackager.h" />
+    <ClInclude Include="head\audiocapturer.h" />
+    <ClInclude Include="head\audioresample.h" />
+    <ClInclude Include="head\avtimebase.h" />
+    <ClInclude Include="head\codecs.h" />
+    <ClInclude Include="head\commonlooper.h" />
+    <ClInclude Include="head\dlog.h" />
+    <ClInclude Include="head\h264encoder.h" />
+    <ClInclude Include="head\imagescale.h" />
+    <ClInclude Include="head\looper.h" />
+    <ClInclude Include="head\mediabase.h" />
+    <ClInclude Include="head\naluloop.h" />
+    <ClInclude Include="head\pushwork.h" />
+    <ClInclude Include="head\rtmpbase.h" />
+    <ClInclude Include="head\rtmppackager.h" />
+    <ClInclude Include="head\rtmppusher.h" />
+    <ClInclude Include="head\semaphore.h" />
+    <ClInclude Include="head\timeutil.h" />
+    <ClInclude Include="head\videocapturer.h" />
+    <ClInclude Include="head\videooutsdl.h" />
+    <ClInclude Include="librtmp\amf.h" />
+    <ClInclude Include="librtmp\bytes.h" />
+    <ClInclude Include="librtmp\dh.h" />
+    <ClInclude Include="librtmp\dhgroups.h" />
+    <ClInclude Include="librtmp\handshake.h" />
+    <ClInclude Include="librtmp\http.h" />
+    <ClInclude Include="librtmp\log.h" />
+    <ClInclude Include="librtmp\rtmp.h" />
+    <ClInclude Include="librtmp\rtmp_sys.h" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

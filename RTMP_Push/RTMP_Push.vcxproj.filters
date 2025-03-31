@@ -1,0 +1,195 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="源文件">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="头文件">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="资源文件">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="头文件\header">
+      <UniqueIdentifier>{4154c25d-9b6f-44e6-8288-5687d6b04655}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="源文件\src">
+      <UniqueIdentifier>{556b8cf4-cd0f-4f38-86ae-f21ee4d5e096}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="头文件\librtmp">
+      <UniqueIdentifier>{bac5845d-6b83-4aa2-8b03-e4d5e4bf7400}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="源文件\librtmp">
+      <UniqueIdentifier>{c66eeaaa-88df-4715-8e14-15419a999e2e}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="main.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="src\aacencoder.cpp">
+      <Filter>源文件\src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\aacrtmppackager.cpp">
+      <Filter>源文件\src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\audiocapturer.cpp">
+      <Filter>源文件\src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\audioresample.cpp">
+      <Filter>源文件\src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\avtimebase.cpp">
+      <Filter>源文件\src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\commonlooper.cpp">
+      <Filter>源文件\src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\dlog.cpp">
+      <Filter>源文件\src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\h264encoder.cpp">
+      <Filter>源文件\src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\looper.cpp">
+      <Filter>源文件\src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\mediabase.cpp">
+      <Filter>源文件\src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\naluloop.cpp">
+      <Filter>源文件\src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pushwork.cpp">
+      <Filter>源文件\src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\rtmp_publish.cpp">
+      <Filter>源文件\src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\rtmpbase.cpp">
+      <Filter>源文件\src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\rtmppusher.cpp">
+      <Filter>源文件\src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\videocapturer.cpp">
+      <Filter>源文件\src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\videooutsdl.cpp">
+      <Filter>源文件\src</Filter>
+    </ClCompile>
+    <ClCompile Include="librtmp\amf.c">
+      <Filter>源文件\librtmp</Filter>
+    </ClCompile>
+    <ClCompile Include="librtmp\hashswf.c">
+      <Filter>源文件\librtmp</Filter>
+    </ClCompile>
+    <ClCompile Include="librtmp\log.c">
+      <Filter>源文件\librtmp</Filter>
+    </ClCompile>
+    <ClCompile Include="librtmp\parseurl.c">
+      <Filter>源文件\librtmp</Filter>
+    </ClCompile>
+    <ClCompile Include="librtmp\rtmp.c">
+      <Filter>源文件\librtmp</Filter>
+    </ClCompile>
+    <ClCompile Include="src\imagescale.cpp">
+      <Filter>源文件\src</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="head\aacencoder.h">
+      <Filter>头文件\header</Filter>
+    </ClInclude>
+    <ClInclude Include="head\aacrtmppackager.h">
+      <Filter>头文件\header</Filter>
+    </ClInclude>
+    <ClInclude Include="head\audiocapturer.h">
+      <Filter>头文件\header</Filter>
+    </ClInclude>
+    <ClInclude Include="head\audioresample.h">
+      <Filter>头文件\header</Filter>
+    </ClInclude>
+    <ClInclude Include="head\avtimebase.h">
+      <Filter>头文件\header</Filter>
+    </ClInclude>
+    <ClInclude Include="head\commonlooper.h">
+      <Filter>头文件\header</Filter>
+    </ClInclude>
+    <ClInclude Include="head\dlog.h">
+      <Filter>头文件\header</Filter>
+    </ClInclude>
+    <ClInclude Include="head\h264encoder.h">
+      <Filter>头文件\header</Filter>
+    </ClInclude>
+    <ClInclude Include="head\looper.h">
+      <Filter>头文件\header</Filter>
+    </ClInclude>
+    <ClInclude Include="head\mediabase.h">
+      <Filter>头文件\header</Filter>
+    </ClInclude>
+    <ClInclude Include="head\naluloop.h">
+      <Filter>头文件\header</Filter>
+    </ClInclude>
+    <ClInclude Include="head\pushwork.h">
+      <Filter>头文件\header</Filter>
+    </ClInclude>
+    <ClInclude Include="head\rtmpbase.h">
+      <Filter>头文件\header</Filter>
+    </ClInclude>
+    <ClInclude Include="head\rtmppackager.h">
+      <Filter>头文件\header</Filter>
+    </ClInclude>
+    <ClInclude Include="head\rtmppusher.h">
+      <Filter>头文件\header</Filter>
+    </ClInclude>
+    <ClInclude Include="head\semaphore.h">
+      <Filter>头文件\header</Filter>
+    </ClInclude>
+    <ClInclude Include="head\timeutil.h">
+      <Filter>头文件\header</Filter>
+    </ClInclude>
+    <ClInclude Include="head\videocapturer.h">
+      <Filter>头文件\header</Filter>
+    </ClInclude>
+    <ClInclude Include="head\videooutsdl.h">
+      <Filter>头文件\header</Filter>
+    </ClInclude>
+    <ClInclude Include="librtmp\amf.h">
+      <Filter>头文件\librtmp</Filter>
+    </ClInclude>
+    <ClInclude Include="librtmp\bytes.h">
+      <Filter>头文件\librtmp</Filter>
+    </ClInclude>
+    <ClInclude Include="librtmp\dh.h">
+      <Filter>头文件\librtmp</Filter>
+    </ClInclude>
+    <ClInclude Include="librtmp\dhgroups.h">
+      <Filter>头文件\librtmp</Filter>
+    </ClInclude>
+    <ClInclude Include="librtmp\handshake.h">
+      <Filter>头文件\librtmp</Filter>
+    </ClInclude>
+    <ClInclude Include="librtmp\http.h">
+      <Filter>头文件\librtmp</Filter>
+    </ClInclude>
+    <ClInclude Include="librtmp\log.h">
+      <Filter>头文件\librtmp</Filter>
+    </ClInclude>
+    <ClInclude Include="librtmp\rtmp.h">
+      <Filter>头文件\librtmp</Filter>
+    </ClInclude>
+    <ClInclude Include="librtmp\rtmp_sys.h">
+      <Filter>头文件\librtmp</Filter>
+    </ClInclude>
+    <ClInclude Include="head\codecs.h">
+      <Filter>头文件\header</Filter>
+    </ClInclude>
+    <ClInclude Include="head\imagescale.h">
+      <Filter>头文件\header</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>
