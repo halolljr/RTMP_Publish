@@ -29,12 +29,11 @@
 
 #include "rtmp_sys.h"
 #include "log.h"
-/*解析URL，得到协议名称(protocol)，主机名称(host)，应用程序名称(app)
- *
- */
+
 int RTMP_ParseURL(const char *url, int *protocol, AVal *host, unsigned int *port,
 	AVal *playpath, AVal *app)
 {
+	//rtmp://localhost:1935/vod/mp4:sample1_1500kbps.f4v
 	char *p, *end, *col, *ques, *slash;
 
 	RTMP_LogInfo(RTMP_LOGDEBUG, "Parsing...");
@@ -46,7 +45,6 @@ int RTMP_ParseURL(const char *url, int *protocol, AVal *host, unsigned int *port
 	app->av_len = 0;
 	app->av_val = NULL;
 
-	/* Old School Parsing */
     /* 字符串解析 */
     /* 查找“://”  */
     //函数原型：char *strstr(char *str1, char *str2);
@@ -59,38 +57,37 @@ int RTMP_ParseURL(const char *url, int *protocol, AVal *host, unsigned int *port
 		return FALSE;
 	}
 	{
-    //指针相减，返回“://”之前字符串长度len
-	int len = (int)(p-url);
-    //获取使用的协议
-    //通过比较字符串的方法
-	if(len == 4 && strncasecmp(url, "rtmp", 4)==0)
-		*protocol = RTMP_PROTOCOL_RTMP;
-	else if(len == 5 && strncasecmp(url, "rtmpt", 5)==0)
-		*protocol = RTMP_PROTOCOL_RTMPT;
-	else if(len == 5 && strncasecmp(url, "rtmps", 5)==0)
-	        *protocol = RTMP_PROTOCOL_RTMPS;
-	else if(len == 5 && strncasecmp(url, "rtmpe", 5)==0)
-	        *protocol = RTMP_PROTOCOL_RTMPE;
-	else if(len == 5 && strncasecmp(url, "rtmfp", 5)==0)
-	        *protocol = RTMP_PROTOCOL_RTMFP;
-	else if(len == 6 && strncasecmp(url, "rtmpte", 6)==0)
-	        *protocol = RTMP_PROTOCOL_RTMPTE;
-	else if(len == 6 && strncasecmp(url, "rtmpts", 6)==0)
-	        *protocol = RTMP_PROTOCOL_RTMPTS;
-	else {
-		RTMP_LogInfo(RTMP_LOGWARNING, "Unknown protocol!\n");
-		goto parsehost;
-	}
+		//指针相减，返回“://”之前字符串长度len
+		int len = (int)(p-url);
+		//获取使用的协议
+		//strncasecmp：比较字符串url开始的前4个字符是否和""一样，不区分大小写
+		if(len == 4 && strncasecmp(url, "rtmp", 4)==0)
+			*protocol = RTMP_PROTOCOL_RTMP;
+		else if(len == 5 && strncasecmp(url, "rtmpt", 5)==0)
+			*protocol = RTMP_PROTOCOL_RTMPT;
+		else if(len == 5 && strncasecmp(url, "rtmps", 5)==0)
+				*protocol = RTMP_PROTOCOL_RTMPS;
+		else if(len == 5 && strncasecmp(url, "rtmpe", 5)==0)
+				*protocol = RTMP_PROTOCOL_RTMPE;
+		else if(len == 5 && strncasecmp(url, "rtmfp", 5)==0)
+				*protocol = RTMP_PROTOCOL_RTMFP;
+		else if(len == 6 && strncasecmp(url, "rtmpte", 6)==0)
+				*protocol = RTMP_PROTOCOL_RTMPTE;
+		else if(len == 6 && strncasecmp(url, "rtmpts", 6)==0)
+				*protocol = RTMP_PROTOCOL_RTMPTS;
+		else {
+			RTMP_LogInfo(RTMP_LOGWARNING, "Unknown protocol!\n");
+			goto parsehost;
+		}
 	}
 
 	RTMP_LogInfo(RTMP_LOGDEBUG, "Parsed protocol: %d", *protocol);
 
 parsehost:
-    //获取主机名称跳过"://"
-	/* let's get the hostname */
+    //获取主机名称，跳过"://"
+	// p指向 "localhost:1935/vod/mp4:sample1_1500kbps.f4v"
 	p+=3;
     /* 检查一下主机名 */
-	/* check for sudden death */
 	if(*p==0) {
 		RTMP_LogInfo(RTMP_LOGWARNING, "No hostname in URL!");
 		return FALSE;
@@ -98,35 +95,38 @@ parsehost:
     //原型：char *strchr(const char *s,char c);
     //功能：查找字符串s中首次出现字符c的位置
     //说明：返回首次出现c的位置的指针，如果s中不存在c则返回NULL。
-	end   = p + strlen(p);
-	col   = strchr(p, ':');
-	ques  = strchr(p, '?');
-	slash = strchr(p, '/');
-
+	
+	//localhost:1935/vod/mp4:sample1_1500kbps.f4v
+	end   = p + strlen(p);	//指向结尾的指针
+	col   = strchr(p, ':');	//指向冒号（第一个）的指针
+	ques  = strchr(p, '?');	//指向问号（第一个）的指针
+	slash = strchr(p, '/');	//指向斜杠（第一个）的指针
+	//确定主机名的长度
 	{
-	int hostlen;
-	if(slash)
-		hostlen = slash - p;
-	else
-		hostlen = end - p;
-	if(col && col -p < hostlen)
-		hostlen = col - p;
+		int hostlen;
+		if (slash)
+			hostlen = slash - p;	// "localhost:1935"
+		else
+			hostlen = end - p;
+		if (col && col - p < hostlen)
+			hostlen = col - p;	//"localhost"
 
-	if(hostlen < 256) {
-		host->av_val = p;
-		host->av_len = hostlen;
-		RTMP_LogInfo(RTMP_LOGDEBUG, "Parsed host    : %.*s", hostlen, host->av_val);
-	} else {
-		RTMP_LogInfo(RTMP_LOGWARNING, "Hostname exceeds 255 characters!");
-	}
-
-	p+=hostlen;
+		if (hostlen < 256) {
+			host->av_val = p;
+			host->av_len = hostlen;
+			RTMP_LogInfo(RTMP_LOGDEBUG, "Parsed host    : %.*s", hostlen, host->av_val);
+		}
+		else {
+			RTMP_LogInfo(RTMP_LOGWARNING, "Hostname exceeds 255 characters!");
+		}
+		p += hostlen;
+		//此时p=":1935/vod/mp4:sample1_1500kbps.f4v"
 	}
     /* 获取端口号 */
-	/* get the port number if available */
 	if(*p == ':') {
 		unsigned int p2;
 		p++;
+		//对于 ":1935/vod/mp4:sample1_1500kbps.f4v"，atoi 只会读取前面的 "1935" 并将其转换成整数 1935，赋值给变量 p2。
 		p2 = atoi(p);
 		if(p2 > 65535) {
 			RTMP_LogInfo(RTMP_LOGWARNING, "Invalid port number!");
@@ -140,51 +140,53 @@ parsehost:
 		return TRUE;
 	}
 	p = slash+1;
-
+	//此时p="vod/mp4:sample1_1500kbps.f4v"
 	{
-    /* 获取应用程序(application)
-     * parse application
-	 *
-	 * rtmp://host[:port]/app[/appinstance][/...]
-	 * application = app[/appinstance]
-	 */
-    //指向第二个斜杠，第三个斜杠的指针
-	char *slash2, *slash3 = NULL, *slash4 = NULL;
-	int applen, appnamelen;
+		/* 获取应用程序(application)
+		 * rtmp://host[:port]/app[/appinstance][/...]
+		 * application = app[/appinstance]
+		 */
+		//用于查找 p 中后续出现的斜杠，用以区分不同层级的路径（例如应用名、应用实例等）。
+		char *slash2, *slash3 = NULL, *slash4 = NULL;
+		//分别用于记录应用部分的总长度与实际要提取的长度。
+		int applen, appnamelen;
 
-	slash2 = strchr(p, '/');
-	if(slash2)
-		slash3 = strchr(slash2+1, '/');
-	if(slash3)
-		slash4 = strchr(slash3+1, '/');
+		slash2 = strchr(p, '/');//指向第二个斜杠
+		if(slash2)
+			slash3 = strchr(slash2+1, '/');	//指向第三个斜杠，注意slash2之所以+1是因为让其后移一位
+		if(slash3)
+			slash4 = strchr(slash3+1, '/');//指向第四个斜杠，注意slash3之所以+1是因为让其后移一位
 
-	applen = end-p; /* ondemand, pass all parameters as app */
-	appnamelen = applen; /* ondemand length */
+		applen = end-p; /* ondemand, pass all parameters as app */
+		appnamelen = applen; /* ondemand length */
 
-	if(ques && strstr(p, "slist=")) { /* whatever it is, the '?' and slist= means we need to use everything as app and parse plapath from slist= */
-		appnamelen = ques-p;
-	}
-	else if(strncmp(p, "ondemand/", 9)==0) {
-                /* app = ondemand/foobar, only pass app=ondemand */
-                applen = 8;
-                appnamelen = 8;
-        }
-	else { /* app!=ondemand, so app is app[/appinstance] */
-		if(slash4)
-			appnamelen = slash4-p;
-		else if(slash3)
-			appnamelen = slash3-p;
-		else if(slash2)
-			appnamelen = slash2-p;
+		//特殊情况 1：URL 中包含 "slist=" 参数，ques 是之前通过 strchr(url, '?') 获取到的指向问号的位置。
+		if(ques && strstr(p, "slist=")) { /* whatever it is, the '?' and slist= means we need to use everything as app and parse plapath from slist= */
+			//所有问号后面的内容不作为应用名称，而另作处理。
+			appnamelen = ques-p;
+		}
+		//特殊情况 2：“ondemand / ”前缀
+		else if(strncmp(p, "ondemand/", 9)==0) {
+					/* app = ondemand/foobar, only pass app=ondemand */
+					applen = 8;
+					appnamelen = 8;
+		}
+		else { /* app!=ondemand, so app is app[/appinstance] */
+			if(slash4)
+				appnamelen = slash4-p;
+			else if(slash3)
+				appnamelen = slash3-p;
+			else if(slash2)
+				appnamelen = slash2-p;
 
-		applen = appnamelen;
-	}
+			applen = appnamelen;
+		}
 
-	app->av_val = p;
-	app->av_len = applen;
-	RTMP_LogInfo(RTMP_LOGDEBUG, "Parsed app     : %.*s", applen, p);
+		app->av_val = p;
+		app->av_len = applen;
+		RTMP_LogInfo(RTMP_LOGDEBUG, "Parsed app     : %.*s", applen, p);
 
-	p += appnamelen;
+		p += appnamelen;
 	}
 
 	if (*p == '/')
@@ -198,18 +200,14 @@ parsehost:
 	return TRUE;
 }
 
+
 /*
  * 从URL中获取播放路径（playpath）。播放路径是URL中“rtmp://host:port/app/”后面的部分
- * Extracts playpath from RTMP URL. playpath is the file part of the
- * URL, i.e. the part that comes after rtmp://host:port/app/
  *
- * Returns the stream name in a format understood by FMS. The name is
- * the playpath part of the URL with formatting depending on the stream
- * type:
- *
- * mp4 streams: prepend "mp4:", remove extension
- * mp3 streams: prepend "mp3:", remove extension
- * flv streams: remove extension
+ * 获取FMS能够识别的播放路径
+ * mp4 流: 前面添加 "mp4:", 删除扩展名
+ * mp3 流: 前面添加 "mp3:", 删除扩展名
+ * flv 流: 删除扩展名
  */
 void RTMP_ParsePlaypath(AVal *in, AVal *out) {
 	int addMP4 = 0;

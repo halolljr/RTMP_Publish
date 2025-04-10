@@ -14,6 +14,10 @@ namespace LQF
 class Looper
 {
 public:
+    /// <summary>
+    /// 内部new了一个Semaphored对象，并开辟一个线程用以回调自身Looper的loop函数，将running置为true
+    /// </summary>
+    /// <param name="deque_max_size">默认置为30</param>
     Looper(const int deque_max_size = 30);
     virtual ~Looper();
     //flush 是否清空消息队列

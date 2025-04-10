@@ -148,7 +148,7 @@ RET_CODE PushWork::Init(const Properties &properties)
         LogError("fopen push_dump.aac failed");
         return RET_FAIL;
     }
-    // 音频重采样，捕获的PCM数据 s16交错模式, 做编码的时候float棋盘格格式的
+    // 音频重采样，捕获的PCM数据 s16交错模式, 做编码的时候float棋盘格格式的(fltp)
     // 1-快速掌握音视频开发基础知识.pdf
     audio_resampler_ = new AudioResampler();
     AudioResampleParams aud_params;

@@ -38,6 +38,10 @@ public:
     RTMPBase(std::string& url,bool is_recv_audio,bool is_recv_video);
     virtual ~RTMPBase();
 private:
+    /// <summary>
+    /// 初始化Windows平台套接字，初始化RTMP
+    /// </summary>
+    /// <returns></returns>
     bool initRtmp();
     RTMP_BASE_TYPE rtmp_obj_type_;
 protected:

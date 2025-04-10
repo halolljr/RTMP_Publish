@@ -21,6 +21,7 @@ bool RTMPBase::initRtmp()
     ret_code = (WSAStartup(version, &wsaData) == 0) ? true : false;
 #endif
     LogInfo("at rtmp object create");
+    //内部调用了calloc[malloc 不会设置内存为零，而 calloc 会设置分配的内存为零。]
     rtmp_ = RTMP_Alloc();
     RTMP_Init(rtmp_);
     return ret_code;

@@ -69,7 +69,7 @@ TLS_CTX RTMP_TLS_ctx;
 #define RTMP_SIG_SIZE 1536
 #define RTMP_LARGE_HEADER_SIZE 12
 
-static const int packetSize[] = { 12, 8, 4, 1 }; // basic header 1个字节，没有extend time
+static const int packetSize[] = { 12, 8, 4, 1 }; // 在basic header为1个字节，并且没有extended time的情况下
 
 int RTMP_ctrlC;
 
@@ -762,17 +762,10 @@ int RTMP_SetOpt(RTMP *r, const AVal *opt, AVal *arg)
     return TRUE;
 }
 
-/*
-功能：解析URL，根据解析内容设置RTMP
-参数：
-    r:	in/out,rtmp结构体指针
-    url：in,被解析的url字符串
-返回：成功返回1，失败返回0
-*/
 int RTMP_SetupURL(RTMP *r, char *url)
 {
     AVal opt, arg;
-    char *p1, *p2, *ptr = strchr(url, ' ');
+    char *p1, *p2, *ptr = strchr(url, ' '); //ptr 将指向 url 字符串中第一个空格字符的位置，或者在未找到空格时为 NULL
     int ret, len;
     unsigned int port = 0;
 
@@ -787,6 +780,14 @@ int RTMP_SetupURL(RTMP *r, char *url)
     r->Link.port = port;
     r->Link.playpath = r->Link.playpath0;
 
+	/*这段 while 循环对 URL 后面附加的选项字符串进行如下处理：
+
+		利用空格分割出一个个 "key=value" 格式的选项；
+
+		分别提取 key 和 value，其中 value 还会进行转义字符处理（将类似 \XX 的十六进制编码转换为实际字符）；
+
+		调用 RTMP_SetOpt 将每个选项设置到 RTMP 连接参数中。
+     */
     while (ptr) {
         *ptr++ = '\0';
         p1 = ptr;
@@ -830,7 +831,8 @@ int RTMP_SetupURL(RTMP *r, char *url)
         if (!ret)
             return ret;
     }
-
+    //这段代码的目的是确保 RTMP 连接中使用的目标连接 URL（tcUrl）被正确设置。
+    //如果 tcUrl 还没有被设置（其长度为 0），则根据原始 URL 以及已经解析出的各个组件（特别是应用程序部分 app）来构造或确定 tcUrl。
     if (!r->Link.tcUrl.av_len)
     {
         r->Link.tcUrl.av_val = url;
@@ -886,6 +888,9 @@ add_addr_info(struct sockaddr_in *service, AVal *host, int port)
 {
     char *hostname;
     int ret = TRUE;
+    //这段代码检查 AVal 结构中的字符串是否已经以 null 结尾。
+    //如果不是（host->av_val[host->av_len] 不为 0），则创建一个新的字符串并添加 null 终止符；
+    //否则直接使用原始字符串。这是因为 DNS 解析函数需要标准的 C 字符串（以 null 结尾）。
     if (host->av_val[host->av_len])
     {
         hostname = malloc(host->av_len+1);
@@ -896,8 +901,9 @@ add_addr_info(struct sockaddr_in *service, AVal *host, int port)
     {
         hostname = host->av_val;
     }
-
+    //首先尝试使用 inet_addr() 函数将主机名直接解析为 IP 地址（适用于主机名已经是 IP 地址字符串的情况）。
     service->sin_addr.s_addr = inet_addr(hostname);
+	//如果不是有效的 IP 地址，则进行 DNS 解析:
     if (service->sin_addr.s_addr == INADDR_NONE)
     {
         struct hostent *host = gethostbyname(hostname);
@@ -909,7 +915,7 @@ add_addr_info(struct sockaddr_in *service, AVal *host, int port)
         }
         service->sin_addr = *(struct in_addr *)host->h_addr;
     }
-
+    //将端口号转换为网络字节序（大端序）并存储在 sockaddr_in 结构中
     service->sin_port = htons(port);
 finish:
     if (hostname != host->av_val)
@@ -973,7 +979,7 @@ int RTMP_Connect0(RTMP *r, struct sockaddr * service)
                      __FUNCTION__, r->Link.timeout);
         }
     }
-    // TCP_NODELAY选项禁止Nagle算法
+    //TCP_NODELAY: 禁用 Nagle 算法，减少延迟（对于实时流媒体非常重要）
     setsockopt(r->m_sb.sb_socket, IPPROTO_TCP, TCP_NODELAY, (char *) &on, sizeof(on));
     RTMP_LogInfo(RTMP_LOGINFO, "%s Step1 tcp three-Way handshake: connect server successfully", __FUNCTION__);
     return TRUE;
@@ -995,9 +1001,11 @@ RTMP_TLS_Accept(RTMP *r, void *ctx)
     return FALSE;
 #endif
 }
-//第1次连接，从握手开始
+//在 TCP 连接建立后（由 RTMP_Connect0 完成）执行，实现了 RTMP 协议的握手和连接过程。
 int RTMP_Connect1(RTMP *r, RTMPPacket *cp)
 {
+    //RTMPS（RTMP over SSL/TLS）：通过 SSL/TLS 加密的 RTMP
+    //如果连接配置了 SSL/TLS 支持（通过 RTMPS 协议），则在已建立的 TCP 连接上建立 SSL/TLS 连接。如果库编译时没有启用 SSL/TLS 支持，则返回错误。
     if (r->Link.protocol & RTMP_FEATURE_SSL)
     {
 #if defined(CRYPTO) && !defined(NO_SSL)
@@ -1016,6 +1024,8 @@ int RTMP_Connect1(RTMP *r, RTMPPacket *cp)
 
 #endif
     }
+    //RTMPT（RTMP over HTTP）：通过 HTTP 隧道传输的 RTMP，有助于穿越防火墙
+    //如果连接配置了 HTTP 隧道（RTMPT 协议），则初始化 HTTP 隧道连接。这允许 RTMP 流量通过 HTTP 传输，有助于穿越某些防火墙。
     if (r->Link.protocol & RTMP_FEATURE_HTTP)   //使用HTTP
     {
         r->m_msgCounter = 1;
@@ -1032,6 +1042,8 @@ int RTMP_Connect1(RTMP *r, RTMPPacket *cp)
         r->m_msgCounter = 0;
     }
     RTMP_LogInfo(RTMP_LOGINFO, "%s, Step 2 HandShake, handshaking", __FUNCTION__);
+	//执行 RTMP 协议的握手过程。RTMP 握手是一个三步骤的过程，用于验证客户端和服务器，并协商加密参数（如果使用）。
+    //这是 RTMP 连接的第二步（Step 2）。
     if (!HandShake(r, TRUE))
     {
         RTMP_LogInfo(RTMP_LOGERROR, "%s, 2 handshake failed.", __FUNCTION__);
@@ -1042,6 +1054,8 @@ int RTMP_Connect1(RTMP *r, RTMPPacket *cp)
 
     RTMP_LogInfo(RTMP_LOGINFO, "%s Step 3 connect, msg cmd (typeID=20) (Connect) start",
              __FUNCTION__);
+    //发送 RTMP Connect 命令（类型 ID 为 20 的 AMF 命令消息），建立逻辑连接。这个命令包含应用名称、连接参数等信息。
+    //这是 RTMP 连接的第三步（Step 3）。
     if (!SendConnectPacket(r, cp))
     {
         RTMP_LogInfo(RTMP_LOGERROR, "%s,Setp 3  RTMP connect failed.", __FUNCTION__);
@@ -1051,7 +1065,12 @@ int RTMP_Connect1(RTMP *r, RTMPPacket *cp)
     RTMP_LogInfo(RTMP_LOGINFO, "Setp 3 connect. msg cmd (typeID=20) (Connect) ok");
     return TRUE;
 }
-
+/// <summary>
+/// 建立RTMP的连接的总起函数，内部先建立TCP连接，再建立RTMP连接
+/// </summary>
+/// <param name="r"></param>
+/// <param name="cp">传入NULL</param>
+/// <returns></returns>
 int
 RTMP_Connect(RTMP *r, RTMPPacket *cp)
 {
@@ -1456,7 +1475,7 @@ int RTMP_ClientPacket(RTMP *r, RTMPPacket *packet)
 static int
 ReadN(RTMP *r, char *buffer, int n)
 {
-    int nOriginalSize = n;
+    int nOriginalSize = n;   // 保存原始需要读取的字节数
     int avail;
     char *ptr;
 
@@ -1470,6 +1489,7 @@ ReadN(RTMP *r, char *buffer, int n)
     while (n > 0)
     {
         int nBytes = 0, nRead;
+        //HTTP协议分支 (if (r->Link.protocol & RTMP_FEATURE_HTTP))
         if (r->Link.protocol & RTMP_FEATURE_HTTP)
         {
             int refill = 0;
@@ -1508,6 +1528,7 @@ ReadN(RTMP *r, char *buffer, int n)
             if (avail > r->m_resplen)
                 avail = r->m_resplen;
         }
+        //普通RTMP分支
         else
         {
             avail = r->m_sb.sb_size;
@@ -1525,7 +1546,9 @@ ReadN(RTMP *r, char *buffer, int n)
         nRead = ((n < avail) ? n : avail);
         if (nRead > 0)
         {
+            // 从缓冲区复制数据
             memcpy(ptr, r->m_sb.sb_start, nRead);
+            // 更新缓冲区指针和大小
             r->m_sb.sb_start += nRead;
             r->m_sb.sb_size -= nRead;
             nBytes = nRead;
@@ -1641,53 +1664,60 @@ SAVC(secureToken);
 SAVC(secureTokenResponse);
 SAVC(type);
 SAVC(nonprivate);
-//
+
 //发送“connect”命令
 static int
 SendConnectPacket(RTMP *r, RTMPPacket *cp)
 {
     RTMPPacket packet;
-    char pbuf[4096], *pend = pbuf + sizeof(pbuf);
+    //4096字节确保有足够的缓存空间，防止编码溢出，也为后续 chunk 切分做准备。
+    char pbuf[4096], *pend = pbuf + sizeof(pbuf);//pend 指向 pbuf 数组末尾的下一个内存位置，即 pbuf[4096]，这是数组范围之外的位置。
+
     char *enc;
 
     if (cp) // RTMP_Connect 的packet非NULL时则
-        return RTMP_SendPacket(r, cp, TRUE);
-
+        return RTMP_SendPacket(r, cp, TRUE);  
     // 封装一个packet
-    packet.m_nChannel = 0x03;	/* control channel (invoke) chunk steam id*/
-    packet.m_headerType = RTMP_PACKET_SIZE_LARGE;
-    packet.m_packetType = RTMP_PACKET_TYPE_INVOKE;  // Message ID 0x14
-    packet.m_nTimeStamp = 0;
-    packet.m_nInfoField2 = 0;
-    packet.m_hasAbsTimestamp = 0;
+    packet.m_nChannel = 0x03;	// 设置消息的通道 ID（Chunk Stream ID）为 3。通道 ID 用于区分不同的消息流，ID 3（ID 2） 通常用于控制消息。​
+    packet.m_headerType = RTMP_PACKET_SIZE_LARGE;   // 完整包头
+    packet.m_packetType = RTMP_PACKET_TYPE_INVOKE;  // 命令消息类型(0x14)
+    packet.m_nTimeStamp = 0;    // 时间戳
+    packet.m_nInfoField2 = 0;   // 流ID
+    packet.m_hasAbsTimestamp = 0;   // 相对时间戳
     packet.m_body = pbuf + RTMP_MAX_HEADER_SIZE;    // 预留一部分空间给header
-
     enc = packet.m_body;    // 数据
-    enc = AMF_EncodeString(enc, pend, &av_connect); // "connect"
-    enc = AMF_EncodeNumber(enc, pend, ++r->m_numInvokes);   // Number 1
+    // 命令名称："connect"
+    enc = AMF_EncodeString(enc, pend, &av_connect); 
+    // 事务ID：递增数字
+    enc = AMF_EncodeNumber(enc, pend, ++r->m_numInvokes); 
+    // 命令对象标记
     *enc++ = AMF_OBJECT;
-
-    enc = AMF_EncodeNamedString(enc, pend, &av_app, &r->Link.app);  // app字段, 例如live
+    // 应用名称
+    enc = AMF_EncodeNamedString(enc, pend, &av_app, &r->Link.app); 
     if (!enc)
         return FALSE;
+    // 如果是发布模式
     if (r->Link.protocol & RTMP_FEATURE_WRITE)
     {
         enc = AMF_EncodeNamedString(enc, pend, &av_type, &av_nonprivate);
         if (!enc)
             return FALSE;
     }
+    // Flash版本（如果有）
     if (r->Link.flashVer.av_len)
     {
         enc = AMF_EncodeNamedString(enc, pend, &av_flashVer, &r->Link.flashVer);// 版本
         if (!enc)
             return FALSE;
     }
+    // SWF URL（如果有）
     if (r->Link.swfUrl.av_len)
     {
         enc = AMF_EncodeNamedString(enc, pend, &av_swfUrl, &r->Link.swfUrl);
         if (!enc)
             return FALSE;
     }
+    // TC URL
     if (r->Link.tcUrl.av_len)
     {
         enc = AMF_EncodeNamedString(enc, pend, &av_tcUrl, &r->Link.tcUrl); // 链接
@@ -1696,21 +1726,27 @@ SendConnectPacket(RTMP *r, RTMPPacket *cp)
     }
     if (!(r->Link.protocol & RTMP_FEATURE_WRITE))
     {
+        // fpad标志
         enc = AMF_EncodeNamedBoolean(enc, pend, &av_fpad, FALSE);
         if (!enc)
             return FALSE;
+        // 功能
         enc = AMF_EncodeNamedNumber(enc, pend, &av_capabilities, 15.0);
         if (!enc)
             return FALSE;
+        // 音频编解码器支持
         enc = AMF_EncodeNamedNumber(enc, pend, &av_audioCodecs, r->m_fAudioCodecs);
         if (!enc)
             return FALSE;
+        // 视频编解码器支持
         enc = AMF_EncodeNamedNumber(enc, pend, &av_videoCodecs, r->m_fVideoCodecs);
         if (!enc)
             return FALSE;
+        // 视频功能
         enc = AMF_EncodeNamedNumber(enc, pend, &av_videoFunction, 1.0);
         if (!enc)
             return FALSE;
+        // 页面URL（如果有）
         if (r->Link.pageUrl.av_len)
         {
             enc = AMF_EncodeNamedString(enc, pend, &av_pageUrl, &r->Link.pageUrl);
@@ -1726,11 +1762,12 @@ SendConnectPacket(RTMP *r, RTMPPacket *cp)
     }
     if (enc + 3 >= pend)
         return FALSE;
+    //编码对象结束标记
     *enc++ = 0;
     *enc++ = 0;			/* end of object - 0x00 0x00 0x09 */
     *enc++ = AMF_OBJECT_END;
 
-    /* add auth string */
+    //添加认证信息:
     if (r->Link.auth.av_len)
     {
         enc = AMF_EncodeBoolean(enc, pend, r->Link.lFlags & RTMP_LF_AUTH);
@@ -3711,11 +3748,17 @@ DecodeInt32LE(const char *data)
     return val;
 }
 
+/// <summary>
+/// 当Header的大小超过8字节时，需要包含消息流ID字段，该字段以32位小端序格式写入Header，并更新写入指针。
+/// </summary>
+/// <param name="output"></param>
+/// <param name="nVal"></param>
+/// <returns>+4字节表示构造好</returns>
 static int
 EncodeInt32LE(char *output, int nVal)
 {
-    output[0] = nVal;
-    nVal >>= 8;
+    output[0] = nVal;    // 写入低 8 位
+    nVal >>= 8; // 右移 8 位：
     output[1] = nVal;
     nVal >>= 8;
     output[2] = nVal;
@@ -3946,23 +3989,33 @@ int RTMP_ReadPacket(RTMP *r, RTMPPacket *packet)
 
 #ifndef CRYPTO
 // 这里为简单握手, 复杂握手见handshake.h
+//客户端发送C0+C1 (1537字节)
+//服务器回应S0 + S1(1537字节)
+//客户端发送C2(S1的副本)(1536字节)
+//服务器发送S2(C1的副本)(1536字节)
+//handshake.h里面代码量很大，但是很多代码都是为了处理RTMP的加密版协议的，例如rtmps；因此在这里就不做过多分析了，我们只考虑普通的RTMP协议。
 static int HandShake(RTMP *r, int FP9HandShake)
 {
     int i;
     uint32_t uptime, suptime;
     int bMatch;
+    //s0
     char type;
-    // clientbuf 包含C0和C1
+    //clientbuf包含C0(1字节)和C1(1536字节)，clientsig指向C1的起始位置
     char clientbuf[RTMP_SIG_SIZE + 1], *clientsig = clientbuf + 1;
+    //s1
     char serversig[RTMP_SIG_SIZE];
+    // C0: 版本号(1字节)
+    clientbuf[0] = 0x03;		/* 非加密模式 */
 
-    clientbuf[0] = 0x03;		/* not encrypted */
-
+    // C1: 时间戳(4字节)
     uptime = htonl(RTMP_GetTime()); // 使用了系统时间反而出问题
     memcpy(clientsig, &uptime, 4);
-
+    
+    // C1: 版本号(4字节)
     memset(&clientsig[4], 0, 4);
 
+    // C1: 随机数据(1528字节)
 #ifdef _DEBUG
     //将clientsig+8开始的1528个字节替换为0xff（这是一种简单的方法）
     //这是C1中的random字段
@@ -3973,42 +4026,46 @@ static int HandShake(RTMP *r, int FP9HandShake)
             for (i = 8; i < RTMP_SIG_SIZE; i++)
             clientsig[i] = (char)(rand() % 256);
 #endif
-
+    //向服务器发送C0+C1
     RTMP_LogInfo(RTMP_LOGINFO, "%s, Step 2 HandShake, send C0 and S0", __FUNCTION__);
     if (!WriteN(r, clientbuf, RTMP_SIG_SIZE + 1))
         return FALSE;
-
-    // 读返回值
+    //接收S0;
     if (ReadN(r, &type, 1) != 1)	/* 0x03 or 0x06 */
         return FALSE;
 
     RTMP_LogInfo(RTMP_LOGINFO, "%s: Type Answer(S0): 0x%02X", __FUNCTION__, type);
-
+    // 验证版本号匹配
     if (type != clientbuf[0])
         RTMP_LogInfo(RTMP_LOGWARNING, "%s: Type mismatch: client sent %d, server answered %d",
                  __FUNCTION__, clientbuf[0], type);
     RTMP_LogInfo(RTMP_LOGINFO, "%s: try receive S1", __FUNCTION__);
+	//接收S1:
     if (ReadN(r, serversig, RTMP_SIG_SIZE) != RTMP_SIG_SIZE)
         return FALSE;
 
-    /* decode server response */
+    // 解析服务器时间戳
     memcpy(&suptime, serversig, 4);
     suptime = ntohl(suptime);
     RTMP_LogInfo(RTMP_LOGINFO, "%s: received S1, suptime:%d", __FUNCTION__, suptime);
 
     RTMP_LogInfo(RTMP_LOGINFO, "%s: Server Uptime : %d", __FUNCTION__, suptime);
+    // 记录服务器版本信息
     RTMP_LogInfo(RTMP_LOGINFO, "%s: FMS Version   : %d.%d.%d.%d", __FUNCTION__,
              serversig[4], serversig[5], serversig[6], serversig[7]);
 
     /* 2nd part of handshake */
     // C2 和 S2 数据包长度都是 1536 字节，基本就是 S1 和 C1 的副本。
     RTMP_LogInfo(RTMP_LOGINFO, "%s: send C2,", __FUNCTION__);
+    //发送C2(S1的副本)
     if (!WriteN(r, serversig, RTMP_SIG_SIZE))
         return FALSE;
     RTMP_LogInfo(RTMP_LOGINFO, "%s: try receive S2,", __FUNCTION__);
+    //接收S2
     if (ReadN(r, serversig, RTMP_SIG_SIZE) != RTMP_SIG_SIZE)
         return FALSE;
     RTMP_LogInfo(RTMP_LOGINFO, "%s: received S2,", __FUNCTION__);
+    // 验证S2是否与C1匹配
     bMatch = (memcmp(serversig, clientsig, RTMP_SIG_SIZE) == 0);
     if (!bMatch)
     {
@@ -4112,10 +4169,10 @@ RTMP_SendPacket(RTMP *r, RTMPPacket *packet, int queue)
     uint32_t last = 0;
     int nSize;
     int hSize, cSize;
-    char *header;   // 整个chunk的起始位置
-    char *hptr;     // 指向chunk的某个位置
-    char *hend;     // 整个chunk的结束位置
-    char hbuf[RTMP_MAX_HEADER_SIZE];    // chunk header buffer
+    char *header;   // Chunk Header 起始地址
+    char *hptr;     // 构造 Chunk Header 过程中使用的写入指针
+    char *hend;     // Chunk Header 允许写入的结束地址（用于防止写越界）
+    char hbuf[RTMP_MAX_HEADER_SIZE];    // chunk header buffer（临时)
     char c;
     uint32_t t;     // 相对时间戳, 即时间戳增量
     char *buffer, *tbuf = NULL, *toff = NULL;
@@ -4125,7 +4182,9 @@ RTMP_SendPacket(RTMP *r, RTMPPacket *packet, int queue)
     if (packet->m_nChannel >= r->m_channelsAllocatedOut)
     {
         // 加10的目的是什么？
+        //多分配了 10 个元素，避免每次只增一个通道而频繁 realloc（性能优化）。
         int n = packet->m_nChannel + 10;
+        //重新分配 r->m_vecChannelsOut 的内存，这个指针是 RTMPPacket* 的数组。
         RTMPPacket **packets = realloc(r->m_vecChannelsOut, sizeof(RTMPPacket*) * n);
         if (!packets) {
             free(r->m_vecChannelsOut);
@@ -4134,24 +4193,33 @@ RTMP_SendPacket(RTMP *r, RTMPPacket *packet, int queue)
             return FALSE;
         }
         r->m_vecChannelsOut = packets;  // 二级指针
-        // 用于做临时Packet？
+        // 清空新分配的空间为nullptr，防止野指针
+        //举个例子：原来是 10 个通道，现在扩容到了 27，要清空从 [10, 26] 这些新空间。
         memset(r->m_vecChannelsOut + r->m_channelsAllocatedOut, 0, sizeof(RTMPPacket*) * (n - r->m_channelsAllocatedOut));
         r->m_channelsAllocatedOut = n;
     }
 
-    // 用于组织包
+    //根据上一次发送的 packet 的信息，判断是否可以压缩当前 packet 的 Chunk Header，来节省网络带宽。[参考RTMP协议的msg header头类型]
+    //获取当前 packet 对应 chunk ID 的上一个 packet
     prevPacket = r->m_vecChannelsOut[packet->m_nChannel];
-    //不是完整ChunkMsgHeader
+    //如果前一个 packet 存在，并且当前不是完整包头（Type 0），才尝试压缩
     if (prevPacket && packet->m_headerType != RTMP_PACKET_SIZE_LARGE)
     {
+        //首先判断是否可以降级为 Type 2
         //获取ChunkMsgHeader的类型
         //前一个Chunk和这个Chunk对比
-        /* compress a bit by using the prev packet's attributes */
+		/*  消息体大小相同
+
+		    类型相同
+
+			当前本来是 Type 1（中头）
+        */
         if (prevPacket->m_nBodySize == packet->m_nBodySize
                 && prevPacket->m_packetType == packet->m_packetType
                 && packet->m_headerType == RTMP_PACKET_SIZE_MEDIUM)
             packet->m_headerType = RTMP_PACKET_SIZE_SMALL;  // 切换不同type类型
 
+        //然后继续尝试降级为 Type 3（最小头）：
         if (prevPacket->m_nTimeStamp == packet->m_nTimeStamp
                 && packet->m_headerType == RTMP_PACKET_SIZE_SMALL)
             packet->m_headerType = RTMP_PACKET_SIZE_MINIMUM; // 切换不同type类型
@@ -4166,7 +4234,7 @@ RTMP_SendPacket(RTMP *r, RTMPPacket *packet, int queue)
         return FALSE;
     }
 
-    //chunk包头大小；packetSize[] = { 12, 8, 4, 1 }, 默认base header为1个字节, 默认不存在extended time
+    //chunk包头大小；packetSize[] = { 12, 8, 4, 1 }, 默认basic header为1个字节, 默认不存在extended time
     nSize = packetSize[packet->m_headerType];
     hSize = nSize;
     cSize = 0;
@@ -4184,31 +4252,32 @@ RTMP_SendPacket(RTMP *r, RTMPPacket *packet, int queue)
     }
     else
     {
-        header = hbuf + 6;
+        header = hbuf + 6;  //预留了 6 个字节的“冗余空间”【参考下面-2和-4】
         hend = hbuf + sizeof(hbuf);
     }
+
     //当ChunkStreamID大于319时
     if (packet->m_nChannel > 319)
-        cSize = 2;  // Chunk Basic Header是3个字节
+        cSize = 2;  // Chunk Basic Header是3个字节；前面已经假设basic header为1字节了，因此这里设置为2即可；
     //当ChunkStreamID大于63时
     else if (packet->m_nChannel > 63)
-        cSize = 1;  // Chunk Basic Header是2个字节
+        cSize = 1;  // Chunk Basic Header是2个字节；前面已经假设basic header为1字节了，因此这里设置为1即可；
     if (cSize)
     {
         header -= cSize;// header起始位置再 -1或-2
-        hSize += cSize; // base header size +1或+2, 即是占用2个或3个字节
+        hSize += cSize; // base header size +1或+2, 即是再多占用2个或3个字节
     }
     //相对TimeStamp大于0xffffff，此时需要使用ExtendTimeStamp
     if (t >= 0xffffff)
     {
-        header -= 4;    // header起始位置再 -4
-        hSize += 4;     // base header size +4
+        header -= 4;    // header指针前移，为Extended Timestamp腾出4字节空间
+        hSize += 4;     // 整个header大小+4
         RTMP_LogInfo(RTMP_LOGWARNING, "Larger timestamp than 24-bit: 0x%x", t);
     }
 
     hptr = header;
     //把ChunkBasicHeader的Fmt类型左移6位
-    c = packet->m_headerType << 6;  // 保存base header的 fmt 2bit
+    c = packet->m_headerType << 6;  // 保存base header的低 fmt 2bit
     switch (cSize)
     {
     case 0:
@@ -4220,12 +4289,14 @@ RTMP_SendPacket(RTMP *r, RTMPPacket *packet, int queue)
         c |= 1;     // base header 3字节,  base header第1字节低6bit为1
         break;
     }
-    *hptr++ = c;    // 把chunk header 第1字节赋值
+    *hptr++ = c;    // 把chunk header 第1字节赋值，写完basic header
     if (cSize)
-    {   // 如果把chunk base header不只1个字节则继续赋值chunk stream id(m_nChannel)部分
+    {   // chunk base header不只1个字节则继续赋值chunk stream id(m_nChannel)部分【参考csid的计算方法】
         int tmp = packet->m_nChannel - 64;
+        //写入 tmp 的低 8 位
         *hptr++ = tmp & 0xff;
         if (cSize == 2)
+            //丢弃低 8 位，保留高位的值
             *hptr++ = tmp >> 8;
     }
     //ChunkMsgHeader。注意一共有4种，包含的字段数不同。
@@ -4278,15 +4349,17 @@ RTMP_SendPacket(RTMP *r, RTMPPacket *packet, int queue)
             toff = tbuf;
         }
     }
-    while (nSize + hSize)   // 循环发送数据
+    while (nSize + hSize)   //  只要数据还未发送完
     {
         int wrote;
 
+        //一次性发送完毕
         if (nSize < nChunkSize)
             nChunkSize = nSize;
 
         RTMP_LogHexString(RTMP_LOGDEBUG2, (uint8_t *)header, hSize);
         RTMP_LogHexString(RTMP_LOGDEBUG2, (uint8_t *)buffer, nChunkSize);
+        //写入数据到缓冲区或直接发送
         if (tbuf)
         {
             memcpy(toff, header, nChunkSize + hSize);
@@ -4298,24 +4371,39 @@ RTMP_SendPacket(RTMP *r, RTMPPacket *packet, int queue)
             if (!wrote)
                 return FALSE;
         }
+        //剩余没发送的原始数据部分
         nSize -= nChunkSize;
         buffer += nChunkSize;
+        //经过一次发送，头部必定可以发送完毕，还剩下部分原始数据
         hSize = 0;
-
+        //重新构造头部(msg header的type为3)
         if (nSize > 0)
         {
+            //start
+            //假设basic header 1字节
             header = buffer - 1;
             hSize = 1;
+            //end
+            
+            //start
+            //实际上basic header为1、2字节
             if (cSize)      // 对header进行调整
             {
                 header -= cSize;
                 hSize += cSize;
             }
+            //end
+
+            //start
+            //如果有扩展时间戳
             if (t >= 0xffffff)
             {
                 header -= 4;
                 hSize += 4;
             }
+            //end
+
+            //构建type=3的fmt的basic header
             *header = (0xc0 | c);
             if (cSize)
             {
@@ -4324,8 +4412,11 @@ RTMP_SendPacket(RTMP *r, RTMPPacket *packet, int queue)
                 if (cSize == 2)
                     header[2] = tmp >> 8;
             }
+			/*如果时间戳差值（timestamp delta） ≥ 0xFFFFFF，
+			  即使是 Format 3，也 必须额外添加 4 字节 Extended Timestamp*/
             if (t >= 0xffffff)
             {
+                //加上basic header字节（1【假设起初是1字节的basic header】+cSize就为basic header字节）
                 char* extendedTimestamp = header + 1 + cSize;
                 AMF_EncodeInt32(extendedTimestamp, extendedTimestamp + 4, t);
             }
@@ -4339,12 +4430,13 @@ RTMP_SendPacket(RTMP *r, RTMPPacket *packet, int queue)
         if (!wrote)
             return FALSE;
     }
-
-    /* we invoked a remote method */
+    //当发送的 RTMP 包是“调用远程方法”的类型（Invoke）时，对其内容进行解析，并将这个调用信息加入到等待响应的调用队列中
+    //RTMP invoke 的 body 是 AMF 格式（Action Message Format），所以这里并非原始数据
     if (packet->m_packetType == RTMP_PACKET_TYPE_INVOKE)
     {
         AVal method;
         char *ptr;
+        //第一个字节 m_body[0] 是 AMF 类型码（0x02 表示字符串)，所以跳过
         ptr = packet->m_body + 1;
         AMF_DecodeString(ptr, &method);
 //        RTMP_LogInfo(RTMP_LOGINFO, "Invoking %s", method.av_val);

@@ -74,7 +74,7 @@ static const AVal AV_empty = { 0, 0 };
 //用的字节序通常称之为网络字节序。
 //主机序 Host Orader:它遵循Little-Endian规则。所以当两台主机之间要通过TCP/IP协议进行通
 //信的时候就需要调用相应的函数进行主机序（Little-Endian）和网络序（Big-Endian）的转换。
-/* Data is Big-Endian */
+/*AMF数据采用 Big-Endian（大端模式），主机采用Little-Endian（小端模式） */
 unsigned short
 AMF_DecodeInt16(const char *data)
 {
@@ -172,14 +172,21 @@ AMF_DecodeBoolean(const char *data)
   return *data != 0;
 }
 
+/// <summary>
+/// 这表示用 大端格式（Big-endian）写入 16 位整数
+/// </summary>
+/// <param name="output">写入的首地址</param>
+/// <param name="outend">边界</param>
+/// <param name="nVal">字符串长度 short（16位有符号整数）</param>
+/// <returns>返回+2字节（写入16位）的地址</returns>
 char *
 AMF_EncodeInt16(char *output, char *outend, short nVal)
 {
   if (output+2 > outend)
     return NULL;
-
-  output[1] = nVal & 0xff;
-  output[0] = nVal >> 8;
+  //安全隐式截断八位（因为char为8位）
+  output[1] = nVal & 0xff;  // 低8位写到后面
+  output[0] = nVal >> 8;    // 高8位写到前面
   return output+2;
 }
 
@@ -189,9 +196,9 @@ AMF_EncodeInt24(char *output, char *outend, int nVal)
   if (output+3 > outend)
     return NULL;
 
-  output[2] = nVal & 0xff;
-  output[1] = nVal >> 8;
-  output[0] = nVal >> 16;
+  output[2] = nVal & 0xff;  // 提取 nVal 的最低 8 位（即 0x00 ~ 0xff），写入 output[2]（第三个字节）。
+  output[1] = nVal >> 8;    //将 nVal 右移 8 位，丢弃最低 8 位，保留中间的 8 位，写入 output[1]（第二个字节）。
+  output[0] = nVal >> 16;   //将 nVal 右移 16 位，保留最高的 8 位，写入 output[0]（第一个字节）。
   return output+3;
 }
 
@@ -208,22 +215,39 @@ AMF_EncodeInt32(char *output, char *outend, int nVal)
   return output+4;
 }
 
+/// <summary>
+/// 
+/// </summary>
+/// <param name="output"></param>
+/// <param name="outend"></param>
+/// <param name="bv"></param>
+/// <returns>返回+bv->av_len字节之后的地址</returns>
 char *
 AMF_EncodeString(char *output, char *outend, const AVal *bv)
 {
+	/*AMF 字符串编码格式
+	在 AMF 格式中，字符串编码分为两种：
+
+	AMF_STRING：前缀 0x02，后面是 2 字节的长度（适用于字符串长度 < 65536）
+    output + 1 + 2 + bv->av_len : 1字节（类型） + 2字节（将十进制长度写入2字节中） + N字节（字符串本体）
+
+	AMF_LONG_STRING：前缀 0x0C，后面是 4 字节的长度（适用于字符串长度 ≥ 65536）
+    output + 1 + 4 + bv->av_len : 1字节（类型） + 4字节（长度） + N字节（字符串本体）   
+    */
   if ((bv->av_len < 65536 && output + 1 + 2 + bv->av_len > outend) ||
 	output + 1 + 4 + bv->av_len > outend)
     return NULL;
 
+  //判断是普通字符串还是长字符串
   if (bv->av_len < 65536)
     {
-      *output++ = AMF_STRING;
+      *output++ = AMF_STRING;   //0x02,前缀；写入一字节的数据 因为传入的是char数组
 
       output = AMF_EncodeInt16(output, outend, bv->av_len);
     }
   else
     {
-      *output++ = AMF_LONG_STRING;
+      *output++ = AMF_LONG_STRING;  //0x0C,前缀
 
       output = AMF_EncodeInt32(output, outend, bv->av_len);
     }

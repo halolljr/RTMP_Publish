@@ -1,4 +1,4 @@
-#ifndef __AMF_H__
+﻿#ifndef __AMF_H__
 #define __AMF_H__
 /*
  *      Copyright (C) 2005-2008 Team XBMC
@@ -53,11 +53,11 @@ extern "C"
     AMF3_INTEGER, AMF3_DOUBLE, AMF3_STRING, AMF3_XML_DOC, AMF3_DATE,
     AMF3_ARRAY, AMF3_OBJECT, AMF3_XML, AMF3_BYTE_ARRAY
   } AMF3DataType;
-
+  //在 RTMP协议的实现中，AVal常用于表示动态字符串，避免了固定长度字符串的限制，提供了更大的灵活性。
   typedef struct AVal
   {
-    char *av_val;
-    int av_len;
+    char *av_val;   //​指向字符串数据的指针
+    int av_len; //字符串的长度
   } AVal;
 #define AVC(str)	{str,sizeof(str)-1}
 #define AVMATCH(a1,a2)	((a1)->av_len == (a2)->av_len && !memcmp((a1)->av_val,(a2)->av_val,(a1)->av_len))
@@ -86,7 +86,21 @@ extern "C"
   char *AMF_EncodeString(char *output, char *outend, const AVal * str);
   char *AMF_EncodeNumber(char *output, char *outend, double dVal);
   char *AMF_EncodeInt16(char *output, char *outend, short nVal);
+  /// <summary>
+ /// 此函数将一个 32位整数 编码为 3字节（24位） 的字节序列，遵循 大端序（Big-Endian） 规则（即高位在前，低位在后）。
+ /// </summary>
+ /// <param name="output"></param>
+ /// <param name="outend"></param>
+ /// <param name="nVal"></param>
+ /// <returns></returns>
   char *AMF_EncodeInt24(char *output, char *outend, int nVal);
+  /// <summary>
+ /// 此函数将一个 32位整数 编码为 4字节（32位） 的字节序列，遵循 大端序（Big-Endian） 规则（即高位在前，低位在后）。
+ /// </summary>
+ /// <param name="output"></param>
+ /// <param name="outend"></param>
+ /// <param name="nVal"></param>
+ /// <returns></returns>
   char *AMF_EncodeInt32(char *output, char *outend, int nVal);
   char *AMF_EncodeBoolean(char *output, char *outend, int bVal);
 

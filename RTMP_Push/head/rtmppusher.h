@@ -6,6 +6,39 @@
 #include "rtmpbase.h"
 #include "naluloop.h"
 #include "dlog.h"
+//[完整 RTMP Message]
+//│
+//▼
+//拆分为多个 Chunk 传输
+//│
+//├─ Chunk 1:
+//│    ┌───────────────────────┐
+//│    │ Basic Header          │ ← 包含 CSID、Header Type
+//│    ├───────────────────────┤
+//│    │ Message Header        │ ← 包含时间戳、消息长度、类型、MSID（如有）
+//│    ├───────────────────────┤
+//│    │ Extended Timestamp    │ ← （可选）
+//│    ├───────────────────────┤
+//│    │ Chunk Data            │ ← 数据片段
+//│    └───────────────────────┘
+//│
+//├─ Chunk 2:  ...（结构同上）
+//│
+//└─ Chunk N :
+//┌───────────────────────┐
+//│ Basic Header          │
+//│ Message Header        │
+//│ Extended Timestamp    │
+//│ Chunk Data            │
+//└───────────────────────┘
+//│
+//▼
+//[RTMPPacket]
+//- 根据各个 Chunk 中提取的 header 信息：
+//- m_nChannel（来自 Basic Header 的 CSID）
+//- m_nTimeStamp（Message Header 的时间戳）
+//- m_nInfoField2（长消息头中的 MSID）
+//- 重组出完整的消息数据（m_body）
 namespace LQF
 {
 enum RTMPPusherMES
