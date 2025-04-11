@@ -117,13 +117,13 @@ extern "C"
   {
     uint8_t m_headerType;   //chunk msg header的类型(0-3,对应11/7/3/0字节)
     uint8_t m_packetType;   //Message type ID（1-7协议控制；8，9音视频；10以后为AMF编码消息）
-    uint8_t m_hasAbsTimestamp;	// Timestamp 是绝对值还是相对值
+    uint8_t m_hasAbsTimestamp;	// Timestamp 是绝对值还是相对值（1-绝对值；0-相对值）
     int m_nChannel;         //块流ID(chunk stream id, 音视频有独立的csid)
     uint32_t m_nTimeStamp;	//  时间戳
     int32_t m_nInfoField2;	// msg stream id,消息流ID
     uint32_t m_nBodySize;   // 原始数据的长度
     uint32_t m_nBytesRead;  // 已读message长度
-    RTMPChunk *m_chunk;     // 执行raw chunk数据
+    RTMPChunk *m_chunk;     // 辅助成员，供以用户自主组成一个个chunk
     char *m_body;           // message数据buffer
   } RTMPPacket;
 
@@ -133,7 +133,7 @@ extern "C"
   {
     int sb_socket;  //保存 socket 的文件描述符或句柄，用于网络通信的标识。
     int sb_size;		//记录当前缓冲区中未处理的字节数。
-    char *sb_start;		//指向 sb_buf 缓冲区中下一个待处理字节的位置。
+    char *sb_start;		//指向 sb_buf 缓冲区当前还未处理数据的起始位置。
     char sb_buf[RTMP_BUFFER_CACHE_SIZE];	//作为从 socket 中读取数据的临时缓存区，存储原始的网络数据，供后续解析和处理使用。
     int sb_timedout;    //如果网络读取操作超时，该字段会被设置，用于后续错误处理或重试逻辑。
     void *sb_ssl;   //指向 SSL/TLS 相关数据的指针（例如 SSL 结构体），如果使用加密连接，则会被初始化。
@@ -254,7 +254,7 @@ extern "C"
     int m_mediaChannel; // 当前连接媒体使用的块流ID
     uint32_t m_mediaStamp;  // 当前连接媒体最新的时间戳
 	uint32_t m_pauseStamp;  // 当前连接媒体暂停时的时间戳
-    int m_pausing;  // 是否暂停状态
+    int m_pausing;  // 暂停
     int m_nServerBW;    //​m_nServerBW 表示服务器的带宽，单位为字节每秒
     int m_nClientBW;    //m_nClientBW 表示客户端的带宽，单位为字节每秒。
     uint8_t m_nClientBW2;  // 客户端带宽调节方式
@@ -272,7 +272,7 @@ extern "C"
 	int m_channelsAllocatedOut; //最多分配了多少发送通道（Chunk Stream ID）	用于发送给服务器的 Chunk，支持 header 压缩
     RTMPPacket **m_vecChannelsIn;   // 对应CSID上一次接收的报文(不同CSID有不同的报文，因此设置为指针数组)
     RTMPPacket **m_vecChannelsOut;  // 对应CSID上一次发送的报文(不同CSID有不同的报文，因此设置为指针数组)
-	int* m_channelTimestamp;	// 对应块流ID媒体的最新时间戳
+	int* m_channelTimestamp;	// 对应块流ID媒体的最新时间戳数组
 
     double m_fAudioCodecs;	// 音频编码器代码
     double m_fVideoCodecs;	// 视频编码器代码

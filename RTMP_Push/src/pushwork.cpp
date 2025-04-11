@@ -162,7 +162,6 @@ RET_CODE PushWork::Init(const Properties &properties)
     aud_params.logtag = "audio-resample-encode";
     audio_resampler_->InitResampler(aud_params);
 
-
     // 视频编码
     video_encoder_ = new H264Encoder();
     Properties  vid_codec_properties;
