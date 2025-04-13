@@ -21,6 +21,7 @@ H264Encoder::H264Encoder()
  */
 int H264Encoder::Init(const Properties &properties)
 {
+    //宽高必须为偶数，因为 YUV420 格式中，U/V 分量是 2x2 的 block，要求宽高都为偶数
     width_ = properties.GetProperty("width", 0);
     if(width_ == 0 || width_%2 != 0)
     {
@@ -52,7 +53,7 @@ int H264Encoder::Init(const Properties &properties)
 
     //Param that must set
 
-    //最大和最小量化系数，取值范围为0~51。
+    //最大和最小量化系数，取值范围为0~51。越小质量越高，但压缩效率低。
     ctx_->qmin = 10;
     ctx_->qmax = 31;
 
@@ -84,16 +85,17 @@ int H264Encoder::Init(const Properties &properties)
     ctx_->max_b_frames = b_frames_;
 
     if (ctx_->codec_id == AV_CODEC_ID_H264) {
-        av_dict_set(&param, "preset", "ultrafast", 0);
-        av_dict_set(&param, "tune", "zerolatency", 0);
+        av_dict_set(&param, "preset", "ultrafast", 0);  //"preset": "ultrafast"：编码效率优先，压缩率差，但快。
+        av_dict_set(&param, "tune", "zerolatency", 0);  //关闭 B 帧、去除延迟缓存，非常适合 实时推流 / 实时通信。
     }
     if (ctx_->codec_id == AV_CODEC_ID_H265){
         av_dict_set(&param, "preset", "ultrafast", 0);
         av_dict_set(&param, "tune", "zero-latency", 0);
     }
 
-    ctx_->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;    //extradata拷贝 sps pps
-    //初始化视音频编码器的AVCodecContext
+    //表示使用全局头信息，如 SPS / PPS 放在 extradata 中，而不是每个关键帧前。
+    ctx_->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;    
+	//初始化并打开编码器，配置完成后此时 ctx_ 会生成 extradata，即 SPS 和 PPS 信息。
     if (avcodec_open2(ctx_, codec_, &param) < 0)
     {
         printf("Failed to open encoder! \n");
@@ -104,12 +106,17 @@ int H264Encoder::Init(const Properties &properties)
         LogWarn("extradata_size:%d", ctx_->extradata_size);
         // 第一个为sps 7
         // 第二个为pps 8
-
+        
+        //默认开头是 0x00 00 00 01（4字节 start code），跳过之后是SPS
         uint8_t *sps = ctx_->extradata + 4;    // 直接跳到数据
         int sps_len = 0;
         uint8_t *pps = NULL;
         int pps_len = 0;
+
         uint8_t *data = ctx_->extradata + 4;
+
+        //然后往后找下一个 start code（表示 PPS 起始）
+        //为什么减去四字节？因为防止下面的遍历越界
         for (int i = 0; i < ctx_->extradata_size - 4; ++i)
         {
             if (0 == data[i] && 0 == data[i + 1] && 0 == data[i + 2] && 1 == data[i + 3])
@@ -118,17 +125,23 @@ int H264Encoder::Init(const Properties &properties)
                 break;
             }
         }
+        //计算并填充SPS和PPS
         sps_len = int(pps - sps) - 4;   // 4是00 00 00 01占用的字节
         pps_len = ctx_->extradata_size - 4*2 - sps_len;
         sps_.append(sps, sps + sps_len);
         pps_.append(pps, pps + pps_len);
     }
 
-
+    //重点，建议搞清楚内存图！！！！！！！！！
     //Init frame
     frame_ = av_frame_alloc();
+    //计算一帧图像的字节数【详解见yuv420P的字节大小计算方式】
     int pictureSize = avpicture_get_size(ctx_->pix_fmt, ctx_->width, ctx_->height);
     picture_buf_ = (uint8_t *)av_malloc(pictureSize);
+    //将缓冲区与 AVFrame 绑定
+    // y因为是planar格式
+    //这样之后你只需要往 frame_->data[0]、data[1]、data[2] 里填像素数据即可，不需要手动处理 offset。
+    //特比注明：frame->linesize代表对应的yuv分量的总行字节
     avpicture_fill((AVPicture *)frame_, picture_buf_, ctx_->pix_fmt, ctx_->width, ctx_->height);
 
     frame_->width = ctx_->width;

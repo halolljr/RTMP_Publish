@@ -11,6 +11,7 @@ void NaluLoop::addmsg(LooperMessage *msg, bool flush)
     queue_mutex_.lock();
     if (flush)
     {
+        //存疑，可能会造成内存泄漏？？？？？？？？？？？？？？？？
         msg_queue_.clear();
     }
     if(msg_queue_.size() >= max_nalu_)  //移除消息,直到下一个I帧，或者队列为空

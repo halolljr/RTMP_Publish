@@ -254,7 +254,7 @@ extern "C"
     int m_mediaChannel; // 当前连接媒体使用的块流ID
     uint32_t m_mediaStamp;  // 当前连接媒体最新的时间戳
 	uint32_t m_pauseStamp;  // 当前连接媒体暂停时的时间戳
-    int m_pausing;  // 暂停
+    int m_pausing;  // 暂停（交替变换）
     int m_nServerBW;    //​m_nServerBW 表示服务器的带宽，单位为字节每秒
     int m_nClientBW;    //m_nClientBW 表示客户端的带宽，单位为字节每秒。
     uint8_t m_nClientBW2;  // 客户端带宽调节方式

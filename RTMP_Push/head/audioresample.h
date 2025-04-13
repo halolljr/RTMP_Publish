@@ -82,6 +82,7 @@ private:
     AudioResampleParams resample_params_;
     bool is_fifo_only = false;
     bool is_flushed = false;
+    //准备一个 FIFO 缓冲区来存放重采样后的音频帧数据。
     AVAudioFifo *audio_fifo_ = nullptr;
     int64_t start_pts_ = AV_NOPTS_VALUE;
     int64_t cur_pts_ = AV_NOPTS_VALUE;

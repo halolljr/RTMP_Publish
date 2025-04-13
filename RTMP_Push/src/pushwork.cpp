@@ -141,6 +141,7 @@ RET_CODE PushWork::Init(const Properties &properties)
         LogError("AACEncoder Init failed");
         return RET_FAIL;
     }
+    //测试文件专用
     aac_buf_ = new uint8_t[AAC_BUF_MAX_LENGTH];
     aac_fp_ = fopen("push_dump.aac", "wb");
     if(!aac_fp_)
@@ -148,12 +149,14 @@ RET_CODE PushWork::Init(const Properties &properties)
         LogError("fopen push_dump.aac failed");
         return RET_FAIL;
     }
-    // 音频重采样，捕获的PCM数据 s16交错模式, 做编码的时候float棋盘格格式的(fltp)
+    // 音频重采样，捕获的PCM数据是s16交错模式, 做编码的时候float棋盘格格式的(fltp)
     // 1-快速掌握音视频开发基础知识.pdf
     audio_resampler_ = new AudioResampler();
     AudioResampleParams aud_params;
     aud_params.logtag = "[audio-resample]";
+    //S16e
     aud_params.src_sample_fmt = (AVSampleFormat)mic_sample_fmt_;
+    //FLTP
     aud_params.dst_sample_fmt = (AVSampleFormat)audio_encoder_->get_sample_format();
     aud_params.src_sample_rate = mic_sample_rate_;
     aud_params.dst_sample_rate = audio_encoder_->get_sample_rate();

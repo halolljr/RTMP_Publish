@@ -21,13 +21,17 @@ int AudioResampler::InitResampler(const AudioResampleParams & arp) {
     /* fifo of output sample format */
     src_channels_ = av_get_channel_layout_nb_channels(resample_params_.src_channel_layout);
     dst_channels_ = av_get_channel_layout_nb_channels(resample_params_.dst_channel_layout);
+    //分配一个音频 FIFO（先进先出缓冲区），用于存储目标格式的音频数据
+	/*创建一个 先进先出（FIFO）音频缓冲区，格式为目标格式。
+	1 表示初始容量为 1 帧（之后可以扩展）。*/
     audio_fifo_ = av_audio_fifo_alloc(resample_params_.dst_sample_fmt, dst_channels_, 1);
     if(!audio_fifo_)
     {
         LogError("%s av_audio_fifo_alloc failed", logtag_.c_str());
         return -1;
     }
-
+    //判断是否需要重采样
+    //如果源和目标音频的采样格式、采样率、声道布局完全一致，则无需重采样。
     if (resample_params_.src_sample_fmt == resample_params_.dst_sample_fmt &&
             resample_params_.src_sample_rate == resample_params_.dst_sample_rate &&
             resample_params_.src_channel_layout == resample_params_.dst_channel_layout)
@@ -39,18 +43,18 @@ int AudioResampler::InitResampler(const AudioResampleParams & arp) {
     }
 
     swr_ctx_ = swr_alloc();
-
     if(!swr_ctx_)
     {
         LogError("%s swr_alloc failed", logtag_.c_str());
         return -1;
     }
-    /* set options */
+
+    //配置重采样参数
+	//任一操作失败会返回非零值，此时记录错误并返回 -1。
     ret = 0;
     ret |= av_opt_set_int(swr_ctx_,        "in_channel_layout",  resample_params_.src_channel_layout, 0);
     ret |= av_opt_set_int(swr_ctx_,        "in_sample_rate",     resample_params_.src_sample_rate, 0);
     ret |= av_opt_set_sample_fmt(swr_ctx_, "in_sample_fmt",      resample_params_.src_sample_fmt, 0);
-
 
     ret |= av_opt_set_int(swr_ctx_,        "out_channel_layout", resample_params_.dst_channel_layout, 0);
     ret |= av_opt_set_int(swr_ctx_,        "out_sample_rate",    resample_params_.dst_sample_rate, 0);
@@ -60,13 +64,16 @@ int AudioResampler::InitResampler(const AudioResampleParams & arp) {
         return -1;
     }
 
-    /* initialize the resampling context */
+    //实际执行初始化，内部会检查你设定的参数是否合法，失败返回错误码。
     ret = swr_init(swr_ctx_);
     if (ret < 0) {
         LogError("%s  failed to initialize the resampling context.", logtag_.c_str());
         return ret;
     }
+
+    //假定一帧的采样数是1024
     int src_nb_samples = 1024;
+    //dst_nb_samples = src_nb_samples * (dst_sample_rate / src_sample_rate)
     max_dst_nb_samples = dst_nb_samples =
             av_rescale_rnd(src_nb_samples,
                            resample_params_.dst_sample_rate,
@@ -228,10 +235,32 @@ shared_ptr<AVFrame> AudioResampler::getOneFrame(const int desired_size)
 
 int AudioResampler::initResampledData()
 {
-    if (resampled_data_)
-        av_freep(&resampled_data_[0]);
-    av_freep(&resampled_data_);
+	//1. 平面格式（如 AV_SAMPLE_FMT_FLTP）
 
+	//	resampled_data_[0] = 左声道数据
+	//	resampled_data_[1] = 右声道数据
+	//2. 打包格式（如 AV_SAMPLE_FMT_S16）
+
+	//	resampled_data_[0] = [L, R][L, R][L, R]....（交错存储）
+	//	resampled_data_[1] = NULL（因为只有一个指针存所有数据）
+
+    if (resampled_data_)
+        //先释放内部 data[0] 指向的实际音频 buffer；
+        av_freep(&resampled_data_[0]);
+    //然后释放 resampled_data_ 自身这个指针数组。
+    av_freep(&resampled_data_);
+	/*分配一个指针数组 resampled_data_（类似 uint8_t* data[]）
+
+		每个通道一个指针，共 dst_channels_ 个。
+
+		为每个通道分配足够大的音频数据 buffer
+
+		总大小由参数：dst_channels_* dst_nb_samples* bytes_per_sample 决定
+        
+         dst_linesize 的含义：每个声道所需的缓冲区大小（单位：字节）。
+        (在 Packed 模式 下与 dst_linesize 相同；planar模式下：dst_linesize = dst_nb_samples * bytes_per_sample)
+
+		bytes_per_sample 来源于 dst_sample_fmt*/
     int ret=  av_samples_alloc_array_and_samples(&resampled_data_, &dst_linesize, dst_channels_,
                                                  dst_nb_samples, resample_params_.dst_sample_fmt, 0);
     if (ret < 0)

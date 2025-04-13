@@ -9,8 +9,7 @@
 
 namespace LQF
 {
-
-
+//提供通用的消息循环、线程控制、消息投递机制(不涉及音视频帧类消息的缓存控制）
 class Looper
 {
 public:
@@ -23,9 +22,18 @@ public:
     //flush 是否清空消息队列
     void Post(int what, void *data, bool flush = false);
     void Stop();
-
+    /// <summary>
+    /// 虚函数，子类可重写
+    /// </summary>
+    /// <param name="what"></param>
+    /// <param name="data"></param>
     virtual void handle(int what, void *data);
 private:
+	/// <summary>
+	/// 虚函数，子类可重写
+	/// </summary>
+	/// <param name="msg"></param>
+	/// <param name="flush"></param>
 	virtual void addmsg(LooperMessage *msg, bool flush);
     static void* trampoline(void* p);
     void loop();

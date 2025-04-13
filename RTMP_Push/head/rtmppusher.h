@@ -68,7 +68,7 @@ typedef struct _RTMPMetadata
 
 } RTMPMetadata, *LPRTMPMetadata;
 
-// 实现异步发送
+// 继承了NaluLoop和RTMPBase，实现了异步处理消息
 class RTMPPusher : public NaluLoop,public RTMPBase
 {
     typedef RTMPBase Super;

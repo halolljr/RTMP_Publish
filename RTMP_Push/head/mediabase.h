@@ -551,34 +551,35 @@ public:
     virtual ~YUV420p();
 };
 
+//继承了post消息基类
 class FLVMetadataMsg: public MsgBaseObj
 {
 public:
     FLVMetadataMsg(){}
     virtual ~FLVMetadataMsg(){}
 
-    bool has_audio = false;
-    bool has_video = false;
-    int audiocodeid = -1;
-    int audiodatarate = 0;
-    int audiodelay = 0;
-    int audiosamplerate = 0;
-    int audiosamplesize = 0;
-    int channles;
+    bool has_audio = false; //是否包含音频流
+    bool has_video = false; //是否包含视频流
+    int audiocodeid = -1;   //音频编码格式（如 AAC : 10，MP3 : 2，具体值视 FLV 协议）
+    int audiodatarate = 0;  //音频码率（单位 kbps，例如 64）
+    int audiodelay = 0; //	音频延迟
+    int audiosamplerate = 0;    //音频采样率（如 44100, 48000）
+    int audiosamplesize = 0;    //音频采样大小（如 16 表示 16bit）
+    int channles;   //	通道数（1=单声道，2=立体声）
 
-    bool canSeekToEnd = 0;
+    bool canSeekToEnd = 0;  //是否可以 seek 到末尾（FLV seek 功能）
+    
+    std::string creationdate;   //创建日期（通常是字符串）
+    int duration = 0;   //媒体时长（秒）
+    int64_t filesize = 0;   //媒体文件大小
+    double framerate = 0;   //帧率（如 25.0 或 30.0）
+    int height = 0; //视频的高
+    bool stereo = true; //是否是立体声（true=立体声）
 
-    std::string creationdate;
-    int duration = 0;
-    int64_t filesize = 0;
-    double framerate = 0;
-    int height = 0;
-    bool stereo = true;
-
-    int videocodecid = -1;
-    int64_t videodatarate = 0;
-    int width = 0;
-    int64_t pts = 0;
+    int videocodecid = -1;  //视频编码格式（如 H.264: 7，H.265: 12）
+    int64_t videodatarate = 0;  //视频码率（单位 kbps）
+    int width = 0;  //视频的宽
+    int64_t pts = 0;    //时间戳（Presentation Time Stamp）
 };
 
 

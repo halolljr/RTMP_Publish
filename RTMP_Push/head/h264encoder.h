@@ -64,18 +64,17 @@ public:
     }
 private:
     int count;
-    int data_size_;
+	int data_size_; //这个值是 亮度分量 Y 的像素数量。如果你做 RGB -> YUV420 的转换，会用到它。
     int framecnt;
 
-    // 初始化参数
     string codec_name_;  //
     int width_;     // 宽
     int height_;    // 高
     int fps_; // 帧率
     int b_frames_;   // b帧数量
-    int bitrate_;
-    int gop_;
-    bool annexb_;       // 默认不带star code
+    int bitrate_;   //码率
+    int gop_;   //GOP大小
+    bool annexb_;       // 默认不带start code
     int threads_;
     string profile_;
     string level_id_;
@@ -84,7 +83,7 @@ private:
     string pps_;
     //data
     AVFrame* frame_ = NULL;
-    uint8_t* picture_buf_ = NULL;
+    uint8_t* picture_buf_ = NULL;//（原始数据的一帧大小的内存区）
     AVPacket packet_;
 
     //encoder message

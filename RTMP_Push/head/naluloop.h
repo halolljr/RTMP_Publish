@@ -5,6 +5,7 @@
 
 namespace LQF
 {
+//在继承Looper的基础上，重写了addmsg，专注处理音视频帧类消息的缓存控制、智能丢弃
 class NaluLoop : public Looper
 {
 public:

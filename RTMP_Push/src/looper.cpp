@@ -16,6 +16,11 @@ Looper::Looper(const int deque_max_size)
 {
     LogInfo("at Looper create");
     head_data_available_ = new Semaphore(0);
+    //在构造函数中开辟线程并传入this指针会有隐患
+	//此时子类（NaluLoop, RTMPPusher）还没构造完成，如果 loop() 中调用了虚函数（例如你覆盖了 addmsg()），此时调用的是基类版本
+    //直至子类构造完成才会调用子类的addmsg版本
+    //建议在Start函数中开辟线程。
+    
     worker_ = new std::thread(trampoline, this);
     running_ = true;
 }
@@ -56,7 +61,6 @@ void Looper::addmsg(LooperMessage *msg, bool flush)
             delete tmp_msg;
         }
     }
-
     msg_queue_.push_back(msg);
     queue_mutex_.unlock();
     // 发送数据进行通知
@@ -146,7 +150,6 @@ void Looper::Stop()
         }
         if(head_data_available_)
             delete head_data_available_;
-
         running_ = false;
     }
 }

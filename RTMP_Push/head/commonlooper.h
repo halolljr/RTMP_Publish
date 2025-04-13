@@ -13,8 +13,12 @@ public:
     virtual void Stop();
     virtual void Loop() = 0;
 private:
+    /// <summary>
+    /// 返回一个指针的函数，即指针函数；作为回调函数使用
+    /// </summary>
+    /// <param name="p"></param>
+    /// <returns></returns>
     static void* trampoline(void* p);
-
 protected:
     std::thread *worker_;
     bool request_exit_ = false;

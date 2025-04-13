@@ -105,7 +105,7 @@ public:
 private:
     // 需要配置的参数
     int sample_rate_; // 默认 48000
-    int channels_;    //
+    int channels_;    //    通道个数
     int bitrate_;    //    默认out_samplerate*3
     int channel_layout_;  //  默认AV_CH_LAYOUT_STEREO
 
@@ -115,9 +115,6 @@ private:
 
     //    int samplesSize_;
     //    int samplesNum_;
-
-
-
     AudioCodec::Type	type_;
     int			frame_byte_size_;      // 一帧的输入byte size
 };

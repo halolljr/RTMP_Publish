@@ -93,11 +93,18 @@ AMF_DecodeInt24(const char *data)
   return val;
 }
 
+/// <summary>
+/// 从字节流中读取一个 32 位无符号整数（unsigned int），以 大端字节序（Big-endian） 方式解析
+/// </summary>
+/// <param name="data">字节流</param>
+/// <returns>32 位无符号整数</returns>
 unsigned int
 AMF_DecodeInt32(const char *data)
 {
   unsigned char *c = (unsigned char *)data;
   unsigned int val;
+  //这里收到的网络数据c[0]是高字节
+  //往哪移向着哪边补0
   val = (c[0] << 24) | (c[1] << 16) | (c[2] << 8) | c[3];
   return val;
 }
@@ -1238,6 +1245,14 @@ invalid:
   return nOriginalSize - nSize;
 }
 
+/// <summary>
+/// 每次循环处理一个属性字段（AMF 中是“属性名+值”的组合）(3字节)
+/// </summary>
+/// <param name="obj"></param>
+/// <param name="pBuffer"></param>
+/// <param name="nSize"></param>
+/// <param name="bDecodeName"></param>
+/// <returns>过程中出错就返回 -1；否则返回成功解析了多少字节</returns>
 int
 AMF_Decode(AMFObject *obj, const char *pBuffer, int nSize, int bDecodeName)
 {
@@ -1266,7 +1281,7 @@ AMF_Decode(AMFObject *obj, const char *pBuffer, int nSize, int bDecodeName)
 	  pBuffer++;
 	  continue;
 	}
-
+      //使用 AMFProp_Decode() 解出一个属性（name + value），写入 prop
       nRes = AMFProp_Decode(&prop, pBuffer, nSize, bDecodeName);
       if (nRes == -1)
 	{

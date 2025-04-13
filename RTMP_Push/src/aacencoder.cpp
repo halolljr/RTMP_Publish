@@ -32,7 +32,6 @@ RET_CODE AACEncoder::Init(const Properties &properties)
     channels_ = properties.GetProperty("channels", 2);
     channel_layout_ = properties.GetProperty("channel_layout",
                                              (int)av_get_default_channel_layout(channels_));
-
     int ret;
 
     type_ = AudioCodec::AAC;
@@ -51,7 +50,7 @@ RET_CODE AACEncoder::Init(const Properties &properties)
         return RET_ERR_OUTOFMEMORY;
     }
 
-    //Set params
+    //设置解码器上下文的属性
     ctx_->channels		= channels_;
     ctx_->channel_layout	= channel_layout_;
     ctx_->sample_fmt		= AV_SAMPLE_FMT_FLTP;
@@ -62,18 +61,20 @@ RET_CODE AACEncoder::Init(const Properties &properties)
     //Allow experimental codecs
     ctx_->strict_std_compliance = FF_COMPLIANCE_EXPERIMENTAL;
 
+    //绑定解码器上下文
+    //（ctx_->frame_size 是在调用 avcodec_open2() 成功之后由编码器内部自动设置的，代表 每一帧需要多少个采样点（samples） 才能进行编码。）
+    //一般aac编码器是1024个采样点
     if (avcodec_open2(ctx_, codec_, NULL) < 0)
     {
         LogError("AAC: could not open codec\n");
         return RET_FAIL;
     }
 
-
+	//每个样本的字节数 * 声道数 * 一帧的样本数
     frame_byte_size_ = av_get_bytes_per_sample(ctx_->sample_fmt)
             * ctx_->channels * ctx_->frame_size;
 
-
-    //Create frame
+    //设置AVFrame
     frame_ = av_frame_alloc();
     //Set defaults
     frame_->nb_samples     = ctx_->frame_size;

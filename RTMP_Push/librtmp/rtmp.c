@@ -3134,6 +3134,7 @@ HandleInvoke(RTMP *r, const char *body, unsigned int nBodySize)
     AVal method;
     double txn;
     int ret = 0, nRes;
+    // 确保第一个字段是 AMF 类型：字符串（0x02）
     if (body[0] != 0x02)		/* make sure it is a string method name we start with */
     {
         RTMP_LogInfo(RTMP_LOGWARNING, "%s, Sanity failed. no string method in invoke packet",
@@ -3147,9 +3148,11 @@ HandleInvoke(RTMP *r, const char *body, unsigned int nBodySize)
         RTMP_LogInfo(RTMP_LOGERROR, "%s, error decoding invoke packet", __FUNCTION__);
         return 0;
     }
-
+    // 调试用的函数，把 AMFObject 对象里的内容打印出来
     AMF_Dump(&obj);
+    //获取第 0 个属性（即 method 名字），并提取它的字符串值到 method 中
     AMFProp_GetString(AMF_GetProp(&obj, NULL, 0), &method);
+    //获取第 1 个属性（事务编号），并转成 double 类型，存入变量 txn
     txn = AMFProp_GetNumber(AMF_GetProp(&obj, NULL, 1));
     RTMP_LogInfo(RTMP_LOGINFO, "%s, server invoking <%s>", __FUNCTION__, method.av_val);
 
@@ -3594,6 +3597,7 @@ HandleCtrl(RTMP *r, const RTMPPacket *packet)
 {
     short nType = -1;
     unsigned int tmp;
+    //从 packet->m_body 的前两个字节解析出一个 16 位整型，表示控制消息类型
     if (packet->m_body && packet->m_nBodySize >= 2)
         nType = AMF_DecodeInt16(packet->m_body);
     RTMP_LogInfo(RTMP_LOGINFO, "%s, received ctrl. type: %d, len: %d", __FUNCTION__, nType,
