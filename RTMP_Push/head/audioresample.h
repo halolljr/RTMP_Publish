@@ -51,6 +51,12 @@ public:
     }
     int InitResampler(const AudioResampleParams & arp);
     int SendResampleFrame(AVFrame *frame);
+    /// <summary>
+    /// 将外部读取的 PCM 原始数据（如 readPcmFile 获取的数据）封装进 AVFrame，然后传入重采样器处理 ,调用SendResampleFrame
+    /// </summary>
+    /// <param name="in_pcm">一帧pcm数据</param>
+    /// <param name="in_size">一帧pcm数据大小，一般是nb_samples * channels * bytes_per_sample</param>
+    /// <returns></returns>
     int SendResampleFrame(uint8_t *in_pcm, const int in_size);
     shared_ptr<AVFrame> ReceiveResampledFrame(int desired_size = 0);
     int ReceiveResampledFrame(vector<shared_ptr<AVFrame>> & frames, int desired_size);
@@ -82,7 +88,7 @@ private:
     AudioResampleParams resample_params_;
     bool is_fifo_only = false;
     bool is_flushed = false;
-    //准备一个 FIFO 缓冲区来存放重采样后的音频帧数据。
+    //准备一个 FIFO 缓冲区（按 planar 存储的结构）来存放重采样后的音频帧数据。
     AVAudioFifo *audio_fifo_ = nullptr;
     int64_t start_pts_ = AV_NOPTS_VALUE;
     int64_t cur_pts_ = AV_NOPTS_VALUE;

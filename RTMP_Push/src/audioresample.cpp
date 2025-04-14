@@ -123,10 +123,11 @@ int AudioResampler::SendResampleFrame(AVFrame *frame)
     {
         is_flushed = true;
     }
-
+    //特殊模式（只使用 FIFO，不做重采样），用于输入数据已经是目标格式，无需重采样
     if (is_fifo_only) {
         return src_data ? av_audio_fifo_write(audio_fifo_, (void **)src_data, src_nb_samples) : 0;
     }
+    //当前 SwrContext 中未输出的延迟采样数
     int delay = swr_get_delay(swr_ctx_, resample_params_.src_sample_rate);
     dst_nb_samples = av_rescale_rnd(delay
                                     + src_nb_samples,
@@ -137,7 +138,9 @@ int AudioResampler::SendResampleFrame(AVFrame *frame)
     //                                             resample_params_.dst_sample_rate,
     //                                             resample_params_.src_sample_rate,
     //                                             AV_ROUND_UP) + 20;
-//    dst_nb_samples = 941;
+    //    dst_nb_samples = 941;
+    
+    //检查目标缓存空间够不够，重新分配
     if (dst_nb_samples > max_dst_nb_samples) {
         av_freep(&resampled_data_[0]);
         int ret = av_samples_alloc(resampled_data_, &dst_linesize, dst_channels_,
@@ -148,13 +151,18 @@ int AudioResampler::SendResampleFrame(AVFrame *frame)
         }
         max_dst_nb_samples = dst_nb_samples;
     }
+    //执行重采样
+    //如果 src_nb_samples 很大，而 dst_nb_samples 设置得较小，swr_convert 可能会根据目标缓冲区的大小分多次转换数据，直到所有源数据都被处理完。
+    //返回的 nb_samples 是实际转换的样本数，而 dst_nb_samples 只是提供了目标缓冲区可以容纳的空间限制。
+    //所以需要
     int nb_samples = swr_convert(swr_ctx_, resampled_data_, dst_nb_samples,
                                  (const uint8_t **)src_data, src_nb_samples);
-
+    //获取缓冲区大小 & 写文件（调试）
+    //第一个参数是输出参数，得到每个通道对齐后的大小
     int dst_bufsize = av_samples_get_buffer_size(&dst_linesize, dst_channels_,
                                                      nb_samples, resample_params_.dst_sample_fmt, 1);
     // dump
-    //
+    //有bug，可能写漏了部分数据（planar格式一般有多个通道）
     static FILE *s_swr_fp = fopen("swr.pcm","wb");
     fwrite(resampled_data_[0], 1, dst_bufsize, s_swr_fp);
     fflush(s_swr_fp);
@@ -169,13 +177,15 @@ int AudioResampler::SendResampleFrame(uint8_t *in_pcm, const int in_size)
         is_flushed = true;
         return 0;
     }
+    //创建AVFrame的智能指针
     auto frame = shared_ptr<AVFrame>(av_frame_alloc(), [](AVFrame *p)
     {if (p) av_frame_free(&p);});
-
+    //设置AVFrame的参数
     frame->format = resample_params_.src_sample_fmt;
     frame->channel_layout = resample_params_.src_channel_layout;
     int ch = av_get_channel_layout_nb_channels(resample_params_.src_channel_layout);
     frame->nb_samples = in_size/ av_get_bytes_per_sample(resample_params_.src_sample_fmt) /ch;
+    //将原始 PCM 数据指针 in_pcm 填入 frame->data[] 和 frame->linesize[] 等字段，让 FFmpeg 能识别并处理。
     avcodec_fill_audio_frame(frame.get(), ch, resample_params_.src_sample_fmt, in_pcm, in_size, 0);
     int ret = SendResampleFrame(frame.get());
     return ret;

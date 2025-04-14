@@ -20,7 +20,7 @@ class AACEncoder //: public AudioEncoder
 public:
     AACEncoder();
     /**
-     * @brief Init
+     * @brief Init默认编码器需要FLTP模式（planar），麦克风的是s16（packed）
      * @param "sample_rate", 采样率，默认48000
      *        "channels", 通道数，默认2
      *        "bitrate", 比特率, 默认128*1024

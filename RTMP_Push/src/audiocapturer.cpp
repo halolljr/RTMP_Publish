@@ -81,10 +81,13 @@ int AudioCapturer::readPcmFile(uint8_t *pcm_buf, int32_t nb_samples)
     int64_t cur_time = TimesUtil::GetTimeMillisecond();
     int64_t dif = cur_time - pcm_start_time_;
 //    printf("%lld, %lld\n", pcm_total_duration_, dif);
+    //音视频改进的地方，可能会导致不同步
     if((int64_t)pcm_total_duration_ > dif)
         return -1;
-    // 该读取数据了
+    //假设是 2通道、16位音频（每通道 2 字节，2*2 = 4 字节每帧）
+    //一次读取每帧读取的总字节数 = nb_samples * 4
     size_t ret = ::fread(pcm_buf, 1, nb_samples *4, pcm_fp_);
+    //模拟循环播放PCM文件
     if(ret != nb_samples *4)
     {
         // 从文件头部开始读取
