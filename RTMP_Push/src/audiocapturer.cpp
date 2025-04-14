@@ -92,7 +92,6 @@ int AudioCapturer::readPcmFile(uint8_t *pcm_buf, int32_t nb_samples)
         ret = ::fread(pcm_buf, 1, nb_samples *4, pcm_fp_);
         if(ret != nb_samples *4)
         {
-
             return -1;
         }
     }

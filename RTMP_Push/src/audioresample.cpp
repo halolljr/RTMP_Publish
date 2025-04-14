@@ -23,7 +23,7 @@ int AudioResampler::InitResampler(const AudioResampleParams & arp) {
     dst_channels_ = av_get_channel_layout_nb_channels(resample_params_.dst_channel_layout);
     //分配一个音频 FIFO（先进先出缓冲区），用于存储目标格式的音频数据
 	/*创建一个 先进先出（FIFO）音频缓冲区，格式为目标格式。
-	1 表示初始容量为 1 帧（之后可以扩展）。*/
+	1 表示初始容量为 1一个采样点，后面用 av_audio_fifo_write() 写入了更多数据，它会 自动扩容，。*/
     audio_fifo_ = av_audio_fifo_alloc(resample_params_.dst_sample_fmt, dst_channels_, 1);
     if(!audio_fifo_)
     {
@@ -71,8 +71,12 @@ int AudioResampler::InitResampler(const AudioResampleParams & arp) {
         return ret;
     }
 
-    //假定一帧的采样数是1024
+    //假定一帧的单个通道的采样数是1024（AAC编码器的一个通道的采样数就是1024）
     int src_nb_samples = 1024;
+    //前置知识1：nb_samples/sample_rate：一帧的持续时间（仅考虑每个通道的采样点数）
+    //前置知识2：1/sample_rate：一个采样点的持续时间
+    //计算原理：音频一帧数据通常是按固定的时间间隔采样的，采样率不同（例如：44.1 kHz 与 48 kHz）会导致每秒钟采样的数据点数不同。
+    //根据时间相等：src_nb_samples/src_sample_rate==dst_nb_samples/dst_sample_rate
     //dst_nb_samples = src_nb_samples * (dst_sample_rate / src_sample_rate)
     max_dst_nb_samples = dst_nb_samples =
             av_rescale_rnd(src_nb_samples,

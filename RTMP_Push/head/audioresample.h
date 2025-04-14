@@ -29,7 +29,7 @@ namespace LQF {
 using::std::string;
 using::std::vector;
 using::std::shared_ptr;
-
+//存储源和目标的音频格式、采样率、音频布局
 typedef struct AudioResampleParams
 {
     enum AVSampleFormat src_sample_fmt;

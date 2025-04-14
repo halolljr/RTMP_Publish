@@ -139,9 +139,10 @@ int H264Encoder::Init(const Properties &properties)
     int pictureSize = avpicture_get_size(ctx_->pix_fmt, ctx_->width, ctx_->height);
     picture_buf_ = (uint8_t *)av_malloc(pictureSize);
     //将缓冲区与 AVFrame 绑定
-    // y因为是planar格式
+    // 因为是planar格式
     //这样之后你只需要往 frame_->data[0]、data[1]、data[2] 里填像素数据即可，不需要手动处理 offset。
     //特比注明：frame->linesize代表对应的yuv分量的总行字节
+    //推荐使用更新的av_frame_get_buffer和av_frame_fill，以实现内存对齐
     avpicture_fill((AVPicture *)frame_, picture_buf_, ctx_->pix_fmt, ctx_->width, ctx_->height);
 
     frame_->width = ctx_->width;

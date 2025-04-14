@@ -24,6 +24,10 @@ public:
     RET_CODE Init(const Properties& properties);
 
     virtual void Loop();
+    /// <summary>
+    /// 提供外部的回调函数以在loop线程内部调用
+    /// </summary>
+    /// <param name="callback"></param>
     void AddCallback(function<void(uint8_t*, int32_t)> callback)
     {
         callback_get_pcm_ = callback;
@@ -40,7 +44,6 @@ private:
     int64_t pcm_start_time_ = 0;    // 起始时间
     double pcm_total_duration_ = 0;        // PCM读取累计的时间
     FILE *pcm_fp_ = NULL;
-
 
     function<void(uint8_t*, int32_t)> callback_get_pcm_ = NULL;
     uint8_t *pcm_buf_;

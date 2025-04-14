@@ -203,7 +203,7 @@ RET_CODE PushWork::Init(const Properties &properties)
     metadata->pts = 0;
     rtmp_pusher->Post(RTMP_BODY_METADATA, metadata, false);
 
-    // 设置音频pts的间隔
+    // 设置音频pts的间隔（和nb_samples/sample_rate（秒为单位）是一样的，只不过下面的用了毫秒为单位）
     double audio_frame_duration = 1000.0/audio_encoder_->get_sample_rate() *audio_encoder_->GetFrameSampleSize();
     LogInfo("audio_frame_duration:%lf", audio_frame_duration);
     AVPublishTime::GetInstance()->set_audio_frame_duration(audio_frame_duration);
@@ -218,6 +218,7 @@ RET_CODE PushWork::Init(const Properties &properties)
         LogError("AACEncoder Init failed");
         return RET_FAIL;
     }
+    //这个地方传入 this 指针，是因为你用的是 std::bind 来绑定类的成员函数，而成员函数在调用时必须依赖一个对象实例 —— 也就是你当前的 PushWork 对象
     audio_capturer_->AddCallback(std::bind(&PushWork::PcmCallback, this,
                                            std::placeholders::_1,
                                            std::placeholders::_2));

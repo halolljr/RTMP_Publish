@@ -17,6 +17,8 @@ CommonLooper::CommonLooper()
 RET_CODE CommonLooper::Start()
 {
     LogInfo("at CommonLooper create");
+    //把this作为参数传进去，又因为是静态函数，因此无需加取地址和签名
+    //你也可以统一性写法：worker_ = new std::thread(&CommonLooper::trampoline, this);
     worker_ = new std::thread(trampoline, this);
     if(worker_ == NULL)
     {
