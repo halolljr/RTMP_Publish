@@ -97,6 +97,7 @@ void Looper::loop()
             if(msg->what == 1)
             LogDebug("processing into msg %d, size:%d t:%u", msg->what, size,
                     AVPlayTime::GetInstance()->getCurrenTime());
+            //其实会走子类的handle，因为会在子类构造完成的时候才会调用handle函数
             handle(msg->what, msg->obj);
             if(msg->what == 1)
             LogDebug("processing leave msg %d, size:%d t:%u", msg->what, size,

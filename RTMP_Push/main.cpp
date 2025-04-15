@@ -45,7 +45,7 @@ int main()
 		properties.SetProperty("mic_channels", 2);
 		// 音频编码属性
 		properties.SetProperty("audio_sample_rate", 48000);
-		properties.SetProperty("audio_bitrate", 64 * 1024);
+		properties.SetProperty("audio_bitrate", 256 * 1024);
 		properties.SetProperty("audio_channels", 2);
 
 		//视频test模式
@@ -59,7 +59,7 @@ int main()
 		//    properties.SetProperty("desktop_pixel_format", AV_PIX_FMT_YUV420P);
 		properties.SetProperty("desktop_fps", 24);//测试模式时和yuv文件的帧率一致
 		// 视频编码属性
-		properties.SetProperty("video_bitrate", 512 * 1024);  // 设置码率
+		properties.SetProperty("video_bitrate", 4*1024 * 1024);  // 设置码率
 
 		// 使用缺省的
 		// rtmp推流

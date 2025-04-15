@@ -73,7 +73,7 @@ int AudioResampler::InitResampler(const AudioResampleParams & arp) {
 
     //假定一帧的单个通道的采样数是1024（AAC编码器的一个通道的采样数就是1024）
     int src_nb_samples = 1024;
-    //前置知识1：nb_samples/sample_rate：一帧的持续时间（仅考虑每个通道的采样点数）
+    //前置知识1：nb_samples/sample_rate：一帧的持续时间（仅考虑每个通道的采样点数），采样点数往往不是重采样的前置条件（除了以视频时钟为主的同步策略）
     //前置知识2：1/sample_rate：一个采样点的持续时间
     //计算原理：音频一帧数据通常是按固定的时间间隔采样的，采样率不同（例如：44.1 kHz 与 48 kHz）会导致每秒钟采样的数据点数不同。
     //根据时间相等：src_nb_samples/src_sample_rate==dst_nb_samples/dst_sample_rate
@@ -163,6 +163,7 @@ int AudioResampler::SendResampleFrame(AVFrame *frame)
                                                      nb_samples, resample_params_.dst_sample_fmt, 1);
     // dump
     //有bug，可能写漏了部分数据（planar格式一般有多个通道）
+    //可能也没有，因为传入了所有通道加起来的字节大小
     static FILE *s_swr_fp = fopen("swr.pcm","wb");
     fwrite(resampled_data_[0], 1, dst_bufsize, s_swr_fp);
     fflush(s_swr_fp);
@@ -208,6 +209,7 @@ int AudioResampler::ReceiveResampledFrame(vector<shared_ptr<AVFrame>> & frames,
     desired_size = desired_size == 0 ? av_audio_fifo_size(audio_fifo_) : desired_size;
     do
     {
+        //编码不等于解码播放那样子自由，必须按照固定采样点去适配编码器所需的采样点数（这也解释了为什么在绑定编码器【并非加码器】的时候会直接得到采样点个数）
         if (av_audio_fifo_size(audio_fifo_) < desired_size || desired_size == 0)
             break;
         auto frame = getOneFrame(desired_size);

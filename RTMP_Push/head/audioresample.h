@@ -56,7 +56,7 @@ public:
     /// </summary>
     /// <param name="in_pcm">一帧pcm数据</param>
     /// <param name="in_size">一帧pcm数据大小，一般是nb_samples * channels * bytes_per_sample</param>
-    /// <returns></returns>
+    /// <returns>返回写入音频fifo队列的所有样本数</returns>
     int SendResampleFrame(uint8_t *in_pcm, const int in_size);
     shared_ptr<AVFrame> ReceiveResampledFrame(int desired_size = 0);
     int ReceiveResampledFrame(vector<shared_ptr<AVFrame>> & frames, int desired_size);

@@ -57,7 +57,7 @@ void AudioCapturer::Loop()
             }
             if(callback_get_pcm_)
             {
-                callback_get_pcm_(pcm_buf_, nb_samples *4); // 2通道 s16格式
+                callback_get_pcm_(pcm_buf_, nb_samples *4); // 2通道，源数据s16格式是2字节[fltp作为编码是4字节]
             }
         }
 
@@ -84,7 +84,7 @@ int AudioCapturer::readPcmFile(uint8_t *pcm_buf, int32_t nb_samples)
     //音视频改进的地方，可能会导致不同步
     if((int64_t)pcm_total_duration_ > dif)
         return -1;
-    //假设是 2通道、16位音频（每通道 2 字节，2*2 = 4 字节每帧）
+    //假设是 2通道、原数据16e是16位音频（每通道 2 字节，2*2 = 4 字节每帧）
     //一次读取每帧读取的总字节数 = nb_samples * 4
     size_t ret = ::fread(pcm_buf, 1, nb_samples *4, pcm_fp_);
     //模拟循环播放PCM文件
@@ -99,6 +99,7 @@ int AudioCapturer::readPcmFile(uint8_t *pcm_buf, int32_t nb_samples)
         }
     }
 //    LogInfo("pcm_total_duration_:%lldms", (int64_t)pcm_total_duration_);
+    //除以48而不是48000是因为从系统获取到的时间是毫秒级别，所以这里用来比对的也是毫秒级别
     pcm_total_duration_ +=(nb_samples*1.0/48);
     return 0;
 }
