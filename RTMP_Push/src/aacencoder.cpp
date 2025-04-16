@@ -90,8 +90,13 @@ RET_CODE AACEncoder::Init(const Properties &properties)
     return RET_OK;
 }
 
-
-
+/// <summary>
+/// 对PCM数据进行编码
+/// </summary>
+/// <param name="frame">包含原始 PCM 音频数据（planar 或 packed 格式）</param>
+/// <param name="out">用户提供的缓冲区，保存编码后的 AAC 数据</param>
+/// <param name="out_len">该缓冲区的最大字节数</param>
+/// <returns>编码后数据的字节数（成功）或 -1（失败）</returns>
 int AACEncoder::Encode(AVFrame *frame,uint8_t* out,int out_len)
 {
     AVPacket pkt;
@@ -119,7 +124,6 @@ int AACEncoder::Encode(AVFrame *frame,uint8_t* out,int out_len)
         LogError("AAC: could not encode audio frame\n");
         return -1;
     }
-
 
     //Check if we got output
     if (!got_output)

@@ -141,7 +141,6 @@ RET_CODE PushWork::Init(const Properties &properties)
         LogError("AACEncoder Init failed");
         return RET_FAIL;
     }
-    //测试文件专用
     aac_buf_ = new uint8_t[AAC_BUF_MAX_LENGTH];
     aac_fp_ = fopen("push_dump.aac", "wb");
     if(!aac_fp_)

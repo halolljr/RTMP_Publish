@@ -14,6 +14,11 @@ std::ostream & operator<<(std::ostream & os, const AudioResampleParams & arp) {
     return os;
 }
 
+/// <summary>
+/// 先分配音频fifo作为最终存储音频数据的空间，之后判断是否需要重采样，判断后再开辟暂时存放重采样后的数据的空间
+/// </summary>
+/// <param name="arp"></param>
+/// <returns></returns>
 int AudioResampler::InitResampler(const AudioResampleParams & arp) {
     int ret = 0;
     resample_params_ = arp;
@@ -158,7 +163,7 @@ int AudioResampler::SendResampleFrame(AVFrame *frame)
     int nb_samples = swr_convert(swr_ctx_, resampled_data_, dst_nb_samples,
                                  (const uint8_t **)src_data, src_nb_samples);
     //获取缓冲区大小 & 写文件（调试）
-    //第一个参数是输出参数，得到每个通道对齐后的大小
+    //第一个参数是输出参数，即每个通道对齐后的大小
     int dst_bufsize = av_samples_get_buffer_size(&dst_linesize, dst_channels_,
                                                      nb_samples, resample_params_.dst_sample_fmt, 1);
     // dump
@@ -178,7 +183,7 @@ int AudioResampler::SendResampleFrame(uint8_t *in_pcm, const int in_size)
         is_flushed = true;
         return 0;
     }
-    //创建AVFrame的智能指针
+    //创建AVFrame的智能指针,在该函数被调用完成后会被释放
     auto frame = shared_ptr<AVFrame>(av_frame_alloc(), [](AVFrame *p)
     {if (p) av_frame_free(&p);});
     //设置AVFrame的参数
@@ -232,7 +237,11 @@ int AudioResampler::ReceiveResampledFrame(vector<shared_ptr<AVFrame>> & frames,
     return ret;
 }
 
-
+/// <summary>
+/// 内部先构建一个AVFrame，然后从fifo队列读取数据，并记录pts的累加
+/// </summary>
+/// <param name="desired_size"></param>
+/// <returns></returns>
 shared_ptr<AVFrame> AudioResampler::getOneFrame(const int desired_size)
 {
     auto frame = allocOutFrame(desired_size);
@@ -284,6 +293,11 @@ int AudioResampler::initResampledData()
     return ret;
 }
 
+/// <summary>
+/// 分配并初始化一个AVFrame，参数设置为采样后的
+/// </summary>
+/// <param name="nb_samples"></param>
+/// <returns></returns>
 shared_ptr<AVFrame> AudioResampler::allocOutFrame(const int nb_samples)
 {
     int ret;

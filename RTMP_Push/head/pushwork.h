@@ -115,6 +115,7 @@ private:
     AudioCapturer *audio_capturer_;
     AudioResampler *audio_resampler_;
     AACEncoder *audio_encoder_;
+    //用于保存编码后AAC数据（较老版本）
     uint8_t *aac_buf_ = NULL;
     const int AAC_BUF_MAX_LENGTH = 8291 + 64; // 最大为13bit长度(8191), +64 只是防止字节对齐
 

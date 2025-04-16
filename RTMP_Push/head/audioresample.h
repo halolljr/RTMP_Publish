@@ -56,7 +56,7 @@ public:
     /// </summary>
     /// <param name="in_pcm">一帧pcm数据</param>
     /// <param name="in_size">一帧pcm数据大小，一般是nb_samples * channels * bytes_per_sample</param>
-    /// <returns>返回写入音频fifo队列的所有样本数</returns>
+    /// <returns>返回写成功的每个通道样本数</returns>
     int SendResampleFrame(uint8_t *in_pcm, const int in_size);
     shared_ptr<AVFrame> ReceiveResampledFrame(int desired_size = 0);
     int ReceiveResampledFrame(vector<shared_ptr<AVFrame>> & frames, int desired_size);
@@ -89,8 +89,11 @@ private:
     bool is_fifo_only = false;
     bool is_flushed = false;
     //准备一个 FIFO 缓冲区（按 planar 存储的结构）来存放重采样后的音频帧数据。
+    // 因为 swr_convert() 每次返回的样本数 nb_samples 可能不固定，跟编码器要求的固定采样点数不匹配，所以要先缓存到 AVAudioFifo 里，等积攒够了固定大小（如 1024 个采样点）再组装成 AVFrame
+    //解码时重采样后可以直接播放，是因为播放设备（或解码框架）不要求"固定采样点数量"；但编码器必须**要求每帧采样点数严格一致（如1024），因此才需要 AVAudioFifo 做缓冲+拼帧。
     AVAudioFifo *audio_fifo_ = nullptr;
     int64_t start_pts_ = AV_NOPTS_VALUE;
+    //cur_pts_在SendSendResampleFramec初始化，之后在getOneFrame先设置到AVFrame中，然后累加desired_size作为一个新的值
     int64_t cur_pts_ = AV_NOPTS_VALUE;
 
     uint8_t **resampled_data_ = nullptr;

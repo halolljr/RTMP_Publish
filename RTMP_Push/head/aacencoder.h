@@ -66,9 +66,15 @@ public:
     {
         return ctx_->sample_fmt;
     }
+    /// <summary>
+    /// 为 AAC 编码后的原始数据生成一个 ADTS 头部（7 字节），用于打包成标准的 AAC 流或用于流式传输（如 .aac 文件、RTMP 传输等）。
+    /// </summary>
+    /// <param name="adts_header"></param>
+    /// <param name="aac_length"></param>
     void GetAdtsHeader(uint8_t *adts_header, int aac_length)
     {
         uint8_t freqIdx = 0;    //0: 96000 Hz  3: 48000 Hz 4: 44100 Hz
+        //ADTS 头中的采样率索引，不能直接写采样率，要写一个编号（标准定义）
         switch (ctx_->sample_rate)
         {
             case 96000: freqIdx = 0; break;
@@ -89,15 +95,21 @@ public:
                 freqIdx = 4;
             break;
         }
+        //通道数（channel configuration）同样需要用一个特定的格式编码在 header 中
         uint8_t ch_cfg = ctx_->channels;
+        //前 AAC 帧的 总长度 = 编码后的裸数据 + ADTS header 长度（7）
         uint32_t frame_length = aac_length + 7;
-        adts_header[0] = 0xFF;
-        adts_header[1] = 0xF1;
-        adts_header[2] = ((ctx_->profile) << 6) + (freqIdx << 2) + (ch_cfg >> 2);
-        adts_header[3] = (((ch_cfg & 3) << 6) + (frame_length  >> 11));
-        adts_header[4] = ((frame_length & 0x7FF) >> 3);
-        adts_header[5] = (((frame_length & 7) << 5) + 0x1F);
-        adts_header[6] = 0xFC;
+
+        adts_header[0] = 0xFF;   // 固定：syncword 的前8位 (0xFFF)
+        adts_header[1] = 0xF1;   // syncword后4位 + MPEG-2/4 + layer + protection_absent
+        adts_header[2] = ((ctx_->profile) << 6)      // profile: 通常是 AAC-LC (值为 1)
+                        + (freqIdx << 2)     // 采样率索引
+                        + (ch_cfg >> 2);     // 声道数前2位
+        adts_header[3] = (((ch_cfg & 3) << 6) // 声道数后2位
+                        + (frame_length  >> 11));   // 帧长度的高2位
+        adts_header[4] = ((frame_length & 0x7FF) >> 3); // 帧长度中间8位
+        adts_header[5] = (((frame_length & 7) << 5) + 0x1F);    // 帧长度最低3位 + 固定位
+        adts_header[6] = 0xFC;   // 固定位 + buffer fullness = 0x7FF (表示未知)
     }
     AVCodecContext* GetCodecContext() {
         return ctx_;
