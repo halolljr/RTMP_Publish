@@ -47,7 +47,9 @@ private:
     int64_t yuv_start_time_ = 0;    // 起始时间
     double yuv_total_duration_ = 0;        // PCM读取累计的时间
     FILE *yuv_fp_ = NULL;
+    //存储从yuv文件读取的数据
     uint8_t *yuv_buf_ = NULL;
+    //一次从yuv文件读取多少数据（可算）
     int yuv_buf_size = 0;
 
 

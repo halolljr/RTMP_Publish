@@ -170,13 +170,18 @@ H264Encoder::~H264Encoder()
 
 int H264Encoder::Encode(uint8_t *in, int in_samples, uint8_t *out, int &out_size)
 {
-    frame_->data[0] = in;                         // Y
-    frame_->data[1] = in + data_size_;              // U
-    frame_->data[2] = in + data_size_ * 5 / 4;      // V
-    frame_->pts = (count++)*(ctx_->time_base.den) / ((ctx_->time_base.num) * 25);  //时间戳
+    //data_size=width*height;
+    frame_->data[0] = in;                         // Y的起始数据地址
+    frame_->data[1] = in + data_size_;              // U的其实数据地址
+    frame_->data[2] = in + data_size_ * 5 / 4;      // V的起始数据地址（in+data_size+data_size/4）
+    //时间戳,0、1、2...，做音视频同步的时候会进行一个转化：pts*av_q2d(time_base)
+    frame_->pts = (count++)*(ctx_->time_base.den) / ((ctx_->time_base.num) * 25);  
 
     av_init_packet(&packet_);
     //Encode
+	 // 编码不需要pts
+	//编码成功但不够数据的时候,got_ouput会为0，此时还需要送帧
+	//建议使用新版本的
     int got_picture = 0;
     int ret = avcodec_encode_video2(ctx_, &packet_, frame_, &got_picture);
 

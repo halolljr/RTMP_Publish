@@ -44,12 +44,15 @@ public:
     }
 
     uint32_t get_audio_pts() {
+        //当前系统时间 - 开始推流时间 = 距离开始已经过去的时间（即当前帧的PTS）
         int64_t pts = getCurrentTimeMsec() - start_time_;
         if(PTS_RECTIFY == audio_pts_strategy_) {
+            //audio_pre_pts_ + audio_frame_duration_ 是理想情况下本帧应该的 PTS
             uint32_t diff = (uint32_t)abs(pts - (long long)(audio_pre_pts_ + audio_frame_duration_));
+            //如果误差很小，比如 < 半帧
             if(diff < audio_frame_threshold_) {
-                // 误差在阈值范围内, 保持帧间隔
-                audio_pre_pts_ += audio_frame_duration_; //帧间隔累加，浮点数
+                // 误差在阈值范围内, 保持帧间隔累加
+                audio_pre_pts_ += audio_frame_duration_; 
                 LogDebug("get_audio_pts1:%u RECTIFY:%0.0lf", diff, audio_pre_pts_);
                 return (uint32_t)(((int64_t)audio_pre_pts_)%0xffffffff);
             }
