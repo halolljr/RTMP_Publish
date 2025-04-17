@@ -342,11 +342,12 @@ void PushWork::PcmCallback(uint8_t *pcm, int32_t size)
     {   LogError("SendResampleFrame failed ");
         return;
     }
+    //为什么需要一个数组
+	//重采样器不保证「每送一次就吐一帧」；
     vector<shared_ptr<AVFrame>> resampled_frames;
     ret = audio_resampler_->ReceiveResampledFrame(
                 resampled_frames,
                 audio_encoder_->GetFrameSampleSize());
-
     if(ret !=0)
     {
         LogWarn("ReceiveResampledFrame ret:%d\n",ret);
@@ -369,8 +370,7 @@ void PushWork::PcmCallback(uint8_t *pcm, int32_t size)
 //            fflush(pcm_flt_fp_);
         }
         // 封装带参考计数的缓存
-        int aac_size = audio_encoder_->Encode(resampled_frames[i].get(),
-                                              aac_buf_, AAC_BUF_MAX_LENGTH);
+        int aac_size = audio_encoder_->Encode(resampled_frames[i].get(), aac_buf_, AAC_BUF_MAX_LENGTH);
         if(aac_size > 0)
         {
             if(aac_fp_)

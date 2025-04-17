@@ -86,7 +86,7 @@ int AudioCapturer::readPcmFile(uint8_t *pcm_buf, int32_t nb_samples)
         return -1;
     //假设是 2通道、原数据16e是16位音频（每通道 2 字节，2*2 = 4 字节每帧）
     //一次读取每帧读取的总字节数 = nb_samples * 4
-    size_t ret = ::fread(pcm_buf, 1, nb_samples *4, pcm_fp_);
+    size_t ret = ::fread(pcm_buf, 1, nb_samples*4, pcm_fp_);
     //模拟循环播放PCM文件
     if(ret != nb_samples *4)
     {

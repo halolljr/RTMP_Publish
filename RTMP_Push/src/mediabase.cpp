@@ -49,6 +49,7 @@ NaluStruct::NaluStruct(int size)
 NaluStruct::NaluStruct(const unsigned char* buf,int bufLen)
 {
     this->size = bufLen;
+    //提取 NALU 类型,比如用来判断是关键帧还是普通帧
     type = buf[4] & 0x1f;
     data = (unsigned char*)malloc(bufLen*sizeof(char));
     memcpy(data,buf,bufLen);

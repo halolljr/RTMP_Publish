@@ -119,9 +119,10 @@ int AACEncoder::Encode(AVFrame *frame,uint8_t* out,int out_len)
     pkt.size = out_len;
 
     //Encode audio
-    // 编码不需要pts
+    // 编码并不关心pts，真正需要pts的时候是在发包的时候
     //编码成功但不够数据的时候,got_ouput会为0，此时还需要送帧
     //建议使用新版本的
+    //想想新版本要怎么做！！！！！！！！！！
     if (avcodec_encode_audio2(ctx_, &pkt, frame, &got_output)<0)
     {
         LogError("AAC: could not encode audio frame\n");

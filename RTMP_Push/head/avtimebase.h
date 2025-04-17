@@ -86,7 +86,6 @@ public:
         }
     }
 
-
     void set_audio_pts_strategy(PTS_STRATEGY pts_strategy){
         audio_pts_strategy_ = pts_strategy;
     }
@@ -180,6 +179,8 @@ private:
     double audio_frame_duration_ = 21.3333;  // 默认按aac 1024 个采样点, 48khz计算
     uint32_t audio_frame_threshold_ = (uint32_t)(audio_frame_duration_ /2);
     double audio_pre_pts_ = 0;
+
+
 
     PTS_STRATEGY video_pts_strategy_ = PTS_RECTIFY;
     double video_frame_duration_ = 40;  // 默认是25帧计算

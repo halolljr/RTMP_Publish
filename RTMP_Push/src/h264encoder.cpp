@@ -175,13 +175,14 @@ int H264Encoder::Encode(uint8_t *in, int in_samples, uint8_t *out, int &out_size
     frame_->data[1] = in + data_size_;              // U的其实数据地址
     frame_->data[2] = in + data_size_ * 5 / 4;      // V的起始数据地址（in+data_size+data_size/4）
     //时间戳,0、1、2...，做音视频同步的时候会进行一个转化：pts*av_q2d(time_base)
-    frame_->pts = (count++)*(ctx_->time_base.den) / ((ctx_->time_base.num) * 25);  
+    frame_->pts = (count++)*(ctx_->time_base.den) / ((ctx_->time_base.num) * 24);  
 
     av_init_packet(&packet_);
     //Encode
-	 // 编码不需要pts
+	// 编码不需要pts
 	//编码成功但不够数据的时候,got_ouput会为0，此时还需要送帧
 	//建议使用新版本的
+    //想想新版本要怎么做！！！！！！！！！
     int got_picture = 0;
     int ret = avcodec_encode_video2(ctx_, &packet_, frame_, &got_picture);
 
@@ -195,7 +196,7 @@ int H264Encoder::Encode(uint8_t *in, int in_samples, uint8_t *out, int &out_size
     {
 //        printf("Succeed to encode frame: %5d\tsize:%5d\n", framecnt, packet.size);
         framecnt++;
-        // 跳过00 00 00 01 startcode nalu
+        // 跳过00 00 00 01 startcode nalu，拷贝packet_.size - 4个字节就是跳过00 00 00 01的裸流
         memcpy(out, packet_.data + 4, packet_.size - 4);
         out_size = packet_.size - 4;
         av_packet_unref(&packet_);       //释放内存 不释放则内存泄漏

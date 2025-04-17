@@ -123,7 +123,7 @@ private:
     // 视频相关
     VideoCapturer *video_capturer = NULL;
     H264Encoder *video_encoder_ = NULL;
-    //编码需要用的
+    //存放编码后的数据
     uint8_t *video_nalu_buf = NULL;
     int video_nalu_size_ = 0;
     const int VIDEO_NALU_BUF_MAX_SIZE = 1024*1024;
