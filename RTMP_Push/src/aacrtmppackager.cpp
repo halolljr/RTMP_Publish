@@ -36,21 +36,29 @@ void AACRTMPPackager::Metadata(RTMPPacket *packet, char* buf, const char* data, 
     *(body++) = 0x00;
     memcpy(body, data, length);
 }
-
+/*来自 AAC 规范（ISO / IEC 14496 - 3），该结构为：
+            AudioSpecificConfig(2 bytes)
+            ------------------------------------------
+            | 11-15| 5 bits: audioObjectType(profile)      |
+            | 10-7| 4 bits : samplingFrequencyIndex         |
+            | 3-6| 4 bits : channelConfiguration           |
+            | 0-2| 3 bits : padding = 0 |*/
 //参考 https://wiki.multimedia.cx/index.php?title=MPEG-4_Audio#Audio_Specific_Config
 int AACRTMPPackager::GetAudioSpecificConfig(uint8_t* data, const uint32_t profile,
                                             const uint32_t samplerate,
                                             const uint32_t channel_num)
 {
-    //uint8_t type:5;//编码结构类型，AAC main编码为1，LOW低复杂度编码为2，SSR为3
-    //uint8_t sample_rate:4;//采样率
-    //uint8_t channel_num:4;//声道数
-    //uint8_t tail:3;//最后3位固定为0
 
+	/*AAC 的 Audio Object Type（AOT）编号是从 1 开始的。例如：
+
+	  LC(Low Complexity) 是 2 → + 1 后变成 3
+
+	  最后左移 11 位放入最高的 5 位（占 bits[11~15]）,0x(.....)00000000000*/
     uint16_t _profile = (uint16_t)profile+1;
     _profile <<= 11;
 
-    uint32_t _samplerate = 0;
+    //使用uint32_t可能会造成冗余，推荐使用uint16_t
+    uint16_t _samplerate = 0;
     switch (samplerate)
     {
     case  96000:
@@ -97,16 +105,18 @@ int AACRTMPPackager::GetAudioSpecificConfig(uint8_t* data, const uint32_t profil
         return -1;
         break;
     }
-
+    //最终值左移 7 位，占 bits[7~10],0x00000(....)0000000
     _samplerate <<= 7;
 
+    //声道数是直接编码进去的，占 bits[3~6],0x000000000(....)000
     uint16_t _channel_num = (uint16_t)channel_num;
     _channel_num <<= 3;
 
+    //合并各部分
     uint16_t audio_spec = _profile | _samplerate | _channel_num;
-
-    data[0] = (uint8_t)(audio_spec >> 8);
-    data[1] = 0xff & audio_spec;
+    //大端写入
+    data[0] = (uint8_t)(audio_spec >> 8);   //写高8位，自动截断高8位
+    data[1] = 0xff & audio_spec;    //写低8位，自动截断高8位
 
     return 0;
 }

@@ -45,7 +45,11 @@ NaluStruct::NaluStruct(int size)
     type = 0;
     data = (unsigned char*)malloc(size*sizeof(char));
 }
-
+/// <summary>
+/// 如果已经丢弃了start code，那不应该直接构造，因为该构造函数假设你没有丢掉start code
+/// </summary>
+/// <param name="buf"></param>
+/// <param name="bufLen"></param>
 NaluStruct::NaluStruct(const unsigned char* buf,int bufLen)
 {
     this->size = bufLen;

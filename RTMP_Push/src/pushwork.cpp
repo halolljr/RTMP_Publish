@@ -184,21 +184,22 @@ RET_CODE PushWork::Init(const Properties &properties)
         LogError("fopen push_dump.h264 failed");
         return RET_FAIL;
     }
-
-    // RTMP -> FLV的格式去发送， metadata
+    //在 RTMP 协议里，推送的不是裸流，而是按 FLV 封装格式打包的数据。
+    // 为什么 RTMP 推流一开始要发送 Metadata
+    // 为了让接收端（播放器、服务器）“知道”后续数据的结构和格式，也就是告诉它：“我要开始播放啦，这就是我的配置！”
     FLVMetadataMsg *metadata = new FLVMetadataMsg();
     // 设置视频相关
-    metadata->has_video = true;
-    metadata->width = video_encoder_->get_width();
-    metadata->height = video_encoder_->get_height();
-    metadata->framerate = video_encoder_->get_framerate();
-    metadata->videodatarate = video_encoder_->get_bit_rate();
+    metadata->has_video = true; //是否有视频
+    metadata->width = video_encoder_->get_width();  //视频宽
+    metadata->height = video_encoder_->get_height();    //视频高
+    metadata->framerate = video_encoder_->get_framerate();  //视频帧率
+    metadata->videodatarate = video_encoder_->get_bit_rate();   //视频码率（kbps）
     // 设置音频相关
-    metadata->has_audio = true;
-    metadata->channles = audio_encoder_->get_channels();
-    metadata->audiosamplerate = audio_encoder_->get_sample_rate();
-    metadata->audiosamplesize = 16;
-    metadata->audiodatarate = 64;
+    metadata->has_audio = true; //是否有音频
+    metadata->channles = audio_encoder_->get_channels();    //声道数
+    metadata->audiosamplerate = audio_encoder_->get_sample_rate();  //采样率
+    metadata->audiosamplesize = 16; //采样位数
+    metadata->audiodatarate = 256;   //音频码率
     metadata->pts = 0;
     rtmp_pusher->Post(RTMP_BODY_METADATA, metadata, false);
 
@@ -384,8 +385,18 @@ void PushWork::PcmCallback(uint8_t *pcm, int32_t size)
             AudioRawMsg *aud_raw_msg = new AudioRawMsg(aac_size + 2);
             // 打上时间戳
             aud_raw_msg->pts = AVPublishTime::GetInstance()->get_audio_pts();
+		   /* SoundFormat: 10 (AAC)
+
+			SoundRate : 3 (44kHz，但你可能想要的是 48kHz？RTMP 中它固定是 44kHz，没办法表示 48kHz)
+
+			SoundSize : 1 (16bit)
+
+			SoundType : 1 (Stereo)
+            但AAC 音频的 SoundRate 实际是由 AudioSpecificConfig 指定的，而不是 RTMP 头里的 2-bit SoundRate
+            */
             aud_raw_msg->data[0] = 0xaf;
-            aud_raw_msg->data[1] = 0x01;    // 1 =  raw data数据
+            // 1 =  raw data数据
+            aud_raw_msg->data[1] = 0x01;   
             memcpy(&aud_raw_msg->data[2], aac_buf_, aac_size);
             rtmp_pusher->Post(RTMP_BODY_AUD_RAW, aud_raw_msg);
             LogDebug("PcmCallback Post");
@@ -430,6 +441,7 @@ void PushWork::YuvCallback(uint8_t* yuv, int32_t size)
     {
         // 获取到编码数据
         NaluStruct *nalu = new NaluStruct(video_nalu_buf, video_nalu_size_);
+        //获取type
         nalu->type = video_nalu_buf[0] & 0x1f;
         nalu->pts = AVPublishTime::GetInstance()->get_video_pts();
         rtmp_pusher->Post(RTMP_BODY_VID_RAW, nalu);

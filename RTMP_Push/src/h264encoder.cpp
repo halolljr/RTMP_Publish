@@ -95,11 +95,36 @@ int H264Encoder::Init(const Properties &properties)
 
     //表示使用全局头信息，如 SPS / PPS 放在 extradata 中，而不是每个关键帧前。
     ctx_->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;    
-	//初始化并打开编码器，配置完成后此时 ctx_ 会生成 extradata，即 SPS 和 PPS 信息。
+	//初始化并打开编码器，当你调用 avcodec_open2() 启用编码器时，FFmpeg 的编码器（比如 libx264）就会生成 SPS 和 PPS，并存在 AVCodecContext::extradata 里。
     if (avcodec_open2(ctx_, codec_, &param) < 0)
     {
         printf("Failed to open encoder! \n");
     }
+	/*🔹 SPS（Sequence Parameter Set）
+		表示序列参数集，描述了一整个视频序列的编码参数，包括：
+
+		视频分辨率（宽高）
+
+		颜色格式（比如 YUV）
+
+		编码级别（profile、level）
+
+		帧率相关信息
+
+		最大参考帧数量等
+
+		👉 播放器必须先拿到 SPS才能正确初始化解码器，否则就不知道你的视频是什么规格。
+
+		🔸 PPS（Picture Parameter Set）
+		表示图像参数集，描述单帧或多帧图像的解码参数，包括：
+
+		熵编码模式（CABAC / CAVLC）
+
+		参考帧索引方式
+
+		宏块信息
+
+		播放器先用 SPS 构建一个解码器，再根据 PPS 去解码每一帧视频。*/
     // 读取sps pps 信息
     if(ctx_->extradata)
     {
@@ -196,6 +221,7 @@ int H264Encoder::Encode(uint8_t *in, int in_samples, uint8_t *out, int &out_size
     {
 //        printf("Succeed to encode frame: %5d\tsize:%5d\n", framecnt, packet.size);
         framecnt++;
+        //如果你没有特别设置 AVCodecContext 的 flags 或 bitstream_filter，FFmpeg 默认就是输出 4 字节 start code。
         // 跳过00 00 00 01 startcode nalu，拷贝packet_.size - 4个字节就是跳过00 00 00 01的裸流
         memcpy(out, packet_.data + 4, packet_.size - 4);
         out_size = packet_.size - 4;
