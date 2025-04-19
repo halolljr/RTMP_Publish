@@ -88,7 +88,15 @@ char * put_amf_double(char *c, double d)
     }
     return c + 8;
 }
-
+//需要构造的就是每一个 RTMP message（也称 FLV tag），该函数从构造Tag Data部分开始
+//| -- > RTMP Packet 包括：
+//- Type：音频 tag（0x08）、视频 tag（0x09）、meta tag（0x12）
+//- Timestamp
+//- StreamID
+//- Body（也就是 FLV tag 的 Data 部分）
+//
+//| -- > Body 部分结构：
+// Tag Data
 void RTMPPusher::handle(int what, void *data)
 {
     LogDebug("into");
@@ -167,6 +175,8 @@ void RTMPPusher::handle(int what, void *data)
         }
         AudioSpecMsg* audio_spec = (AudioSpecMsg*)data;
         uint8_t aac_spec_[4];
+        //FlV的Audio Tag Data部分的构造
+       
         /* SoundFormat: 10 (AAC)
 
             SoundRate : 3 (44kHz，但你可能想要的是 48kHz？RTMP 中它固定是 44kHz，没办法表示 48kHz)
@@ -175,10 +185,12 @@ void RTMPPusher::handle(int what, void *data)
 
             SoundType : 1 (Stereo)
          */
+        //Audio Tag Data的第一字节
         aac_spec_[0] = 0xAF;
-        // 0 = aac sequence header
+		//根据第一字节的SoundFormat->构造AACAudioData
+		//主动填充AACAudioData的第一个字节AACPacketType是0表明是AAC sequence header
         aac_spec_[1] = 0x0;     
-        //因为0x00 表示这是一个 AAC sequence header，所以要生成配置信息
+        //根据AACPacketType==0->构造AudioSpecificConfig（格式详见函数开头注释）
         AACRTMPPackager::GetAudioSpecificConfig(&aac_spec_[2], audio_spec->profile_,
                 audio_spec->sample_rate_, audio_spec->channels_);
         SendAudioSpecificConfig((char *)aac_spec_, 4);
@@ -277,12 +289,22 @@ bool RTMPPusher::SendMetadata(FLVMetadataMsg *metadata)
     
     return sendPacket(RTMP_PACKET_TYPE_INFO, (unsigned char*)body, p - body, 0);
 }
-
-/// <summary>
-/// 将 H.264 编码的视频 SPS/PPS 封装成 FLV 中的 AVCDecoderConfigurationRecord 格式，并发送给 RTMP 服务器。
-/// </summary>
-/// <param name="seq_header"></param>
-/// <returns></returns>
+//AVCDecoderConfigurationRecord 结构
+//它是在 AVCPacketType == 0 时跟随的字节序列，用于描述 H.264 编码参数（profile、level、SPS、PPS 等），让解码器知道该如何解析后续的 NALU。
+//
+//下面是它的结构（按照字节顺序排列）：
+//字节索引	字段名	长度	含义
+//0	configurationVersion	1 字节	固定值 0x01
+//1	AVCProfileIndication	1 字节	SPS[1]，H.264 Profile（如：Baseline, Main, High 等）
+//2	profile_compatibility	1 字节	SPS[2]，配置兼容字段
+//3	AVCLevelIndication	1 字节	SPS[3]，H.264 Level（如：3.1, 4.0 等）
+//4	lengthSizeMinusOne	1 字节	0xFF：后 2 位为 NALU length 字节数 - 1，通常为 0x03 表示 4 字节
+//5	numOfSequenceParameterSets	1 字节	高 3 位保留，低 5 位是 SPS 数量，通常是 1，即 0xE1
+//6 - 7	SPS length	2 字节	SPS 的长度（大端）
+//8 - n	SPS NALU	N 字节	SPS 数据本体
+//n + 1	numOfPictureParameterSets	1 字节	PPS 数量，通常是 1
+//n + 2~n + 3	PPS length	2 字节	PPS 长度（大端）
+//n + 4~n + m	PPS NALU	M 字节	PPS 数据本体
 bool RTMPPusher::sendH264SequenceHeader(VideoSequenceHeaderMsg *seq_header)
 {
     if (seq_header == NULL)
@@ -291,18 +313,20 @@ bool RTMPPusher::sendH264SequenceHeader(VideoSequenceHeaderMsg *seq_header)
     }
     uint8_t body[1024] = { 0 };
     int i = 0;
-    // 构造 FLV 视频包头部（5字节）
+    // 构造 Video Tag Data
+    
+    // 第一个字节
     //0x10（高 4 位）：帧类型，1 表示关键帧（Keyframe）
     //0x07（低 4 位）：编码类型，7 表示 AVC（H.264）
 	body[i++] = 0x17; 
-    //0x00: 表示是 AVC sequence header（而不是 NALU 数据）
+    //根据第一个字节的编码类型CodecID==7->构造AVCVideoPacket
+    //主动填充AVCVideoPacket的第一个字节AVCPacketTYpe==0,表明是AVC sequence header
     body[i++] = 0x00;
     //3 字节 composition time，这个是 PTS 与 DTS 的差值，用于 B 帧播放偏移。sequence header 设置为 0 即可。
     body[i++] = 0x00;
     body[i++] = 0x00;
     body[i++] = 0x00;
-
-    // 写入 AVCDecoderConfigurationRecord
+    //根据第一字节的AVCPacketTYpe==0->AVCDecoderConfigurationRecord【结构详见函数注释体】
     body[i++] = 0x01;               // configurationVersion
     body[i++] = seq_header->sps_[1]; // AVCProfileIndication
     body[i++] = seq_header->sps_[2]; // profile_compatibility
@@ -340,7 +364,6 @@ bool RTMPPusher::SendAudioSpecificConfig(char* data,int length)
     RTMPPacket packet;
     RTMPPacket_Reset(&packet);
     RTMPPacket_Alloc(&packet, 4);
-
     packet.m_body[0] = data[0]; // 0xAF
     packet.m_body[1] = data[1]; // 0x00
     packet.m_body[2] = data[2]; // AAC config byte 1
@@ -365,7 +388,26 @@ bool RTMPPusher::SendAudioSpecificConfig(char* data,int length)
 
 bool RTMPPusher::sendH264Packet(char *data,int size, bool is_keyframe, unsigned int timestamp)
 {
-    if (data == NULL && size<11)
+    //为什么11字节？
+	/*Video Tag 格式（body） :
+	+-------------- - +---------------- + -------------------- + ------------------ - +
+		| 1字节 : Frame | 1字节 : AVC Type | 3字节 : Composition | 4字节 : NALU Length |
+		| Type + Codec | (0 = seq, 1 = NALU) | Time(CTS offset) | 大端 NALU 长度 |
+		+-------------- - +---------------- + -------------------- + ------------------ - +
+		| N字节 : H.264 NALU 数据 |
+		+---------------------------------------------------------------- +*/
+    //对比FLV资料，我们会发现，并没有后续的4字节的NALU Length，这里为什么加上呢？
+	//  当 AVCPacketType == 1（即普通 NALU 数据）时，Data 体的结构为：
+	/*它不是 Annex B 格式（即不是 startcode 开头），而是：
+		多个 NALU，格式为：
+		[4字节 NALU 长度][NALU 数据]
+		[4字节 NALU 长度][NALU 数据]
+		...
+		✅ 所以：虽然 FLV 原始规范中没有规定必须写入 NALU size，但...
+		RTMP + FLV 中的 H.264 视频数据是以 “长度前缀（length - prefixed NALU）（整个Tag的大小，不仅仅是原始数据大小）” 的格式存放的。
+		也就是说，我们自己需要填入每个 NALU 的长度（4 字节），这样播放器才能知道下一个 NALU 的起点在哪里。*/
+    //可能有bug，或许改为||更好
+    if (data == NULL || size<11)
     {
         return false;
     }
@@ -399,12 +441,7 @@ bool RTMPPusher::sendH264Packet(char *data,int size, bool is_keyframe, unsigned 
     delete[] body;
     return bRet;
 }
-//📦 RTMP 与 FLV 的映射关系简图：
-//RTMP 本身不是 FLV 文件，而是 FLV 的“封装形式”，它只承载 Tag Data 部分，并通过 RTMP 协议头部（channel、packet type、timestamp 等）来表达原来 FLV Tag Header 的信息
-//FLV文件结构	RTMP推流结构
-//Tag Header	→ 映射为 RTMP Header（由 librtmp 构造），具体体现在sendPacket函数中和 RTMP_SendPacket函数中
-//Tag Data	→ 调用sendPacket的函数(AudioSpecificConfig就更详细了)
-//PreviousTagSize	→ RTMP 不需要（FLV 文件结构中才用）
+
 int RTMPPusher::sendPacket(unsigned int packet_type, unsigned char *data,
                            unsigned int size, unsigned int timestamp)
 {

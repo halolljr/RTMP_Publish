@@ -385,6 +385,7 @@ void PushWork::PcmCallback(uint8_t *pcm, int32_t size)
             AudioRawMsg *aud_raw_msg = new AudioRawMsg(aac_size + 2);
             // 打上时间戳
             aud_raw_msg->pts = AVPublishTime::GetInstance()->get_audio_pts();
+            //构造Audio Tag Data部分
 		   /* SoundFormat: 10 (AAC)
 
 			SoundRate : 3 (44kHz，但你可能想要的是 48kHz？RTMP 中它固定是 44kHz，没办法表示 48kHz)
@@ -395,7 +396,8 @@ void PushWork::PcmCallback(uint8_t *pcm, int32_t size)
             但AAC 音频的 SoundRate 实际是由 AudioSpecificConfig 指定的，而不是 RTMP 头里的 2-bit SoundRate
             */
             aud_raw_msg->data[0] = 0xaf;
-            // 1 =  raw data数据
+            // 根据第一字节的SoundFormat表明要构造AACAduioData
+            //然后主动填充AACAudioData的第一个字节AACPacketType的值为1，表明后续字节是AAC Raw Data，可以直接构造RTMPheader去发送
             aud_raw_msg->data[1] = 0x01;   
             memcpy(&aud_raw_msg->data[2], aac_buf_, aac_size);
             rtmp_pusher->Post(RTMP_BODY_AUD_RAW, aud_raw_msg);
@@ -435,13 +437,14 @@ void PushWork::YuvCallback(uint8_t* yuv, int32_t size)
 //                    video_encoder_->get_pps_size(), 1, h264_fp_);
         }
     }
-    // 进行编码
+    // 进行编码，是h264的nalu而不是h265的nalu
     video_nalu_size_ = VIDEO_NALU_BUF_MAX_SIZE;
     if(video_encoder_->Encode(yuv, 0, video_nalu_buf, video_nalu_size_) == 0)
     {
         // 获取到编码数据
         NaluStruct *nalu = new NaluStruct(video_nalu_buf, video_nalu_size_);
-        //获取type
+        //根据h264结构获取type（nalustruct类构造函数中使用字节四是因为假设我们没有跳过startcode的）
+        //0x1f==0x0001 1111 (提取低5位)
         nalu->type = video_nalu_buf[0] & 0x1f;
         nalu->pts = AVPublishTime::GetInstance()->get_video_pts();
         rtmp_pusher->Post(RTMP_BODY_VID_RAW, nalu);

@@ -49,10 +49,8 @@ int AACRTMPPackager::GetAudioSpecificConfig(uint8_t* data, const uint32_t profil
                                             const uint32_t channel_num)
 {
 
-	/*AAC 的 Audio Object Type（AOT）编号是从 1 开始的。例如：
-
-	  LC(Low Complexity) 是 2 → + 1 后变成 3
-
+	/*因为你传进来的 profile 是 从 0 开始编号的内部表示（可能是你程序定义的 enum，或是编码器返回的），
+      但 AudioSpecificConfig 要求的是 从 1 开始的标准 audioObjectType 值
 	  最后左移 11 位放入最高的 5 位（占 bits[11~15]）,0x(.....)00000000000*/
     uint16_t _profile = (uint16_t)profile+1;
     _profile <<= 11;

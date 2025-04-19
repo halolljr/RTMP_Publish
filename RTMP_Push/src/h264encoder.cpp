@@ -203,7 +203,7 @@ int H264Encoder::Encode(uint8_t *in, int in_samples, uint8_t *out, int &out_size
     frame_->pts = (count++)*(ctx_->time_base.den) / ((ctx_->time_base.num) * 24);  
 
     av_init_packet(&packet_);
-    //Encode
+    //Encode，成功后 packet_.data 就是 一帧 H.264 视频帧的裸流数据（NALU）。
 	// 编码不需要pts
 	//编码成功但不够数据的时候,got_ouput会为0，此时还需要送帧
 	//建议使用新版本的
