@@ -25,6 +25,8 @@ int main()
 {
 	init_logger("rtmp_push.log", S_INFO);
 	//注释部分为推送多个直播流(在最后的while循环里面会模拟推送30秒，之后结束)
+	// 本地机器最多能推送几个流取决于一下几点:
+	// 1. CPU 性能； 2. 内存； 3. 网络带宽；4. 线程数量(CPU核心数)； 5. 编码器类型；6. I/O 开销
 	//std::thread t1 = std::thread([]()	//测试多路流
 	//	{
 	//		PushWork pushwork; // 可以实例化多个，同时推送多路流
