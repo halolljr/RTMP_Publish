@@ -4274,7 +4274,7 @@ RTMP_SendPacket(RTMP *r, RTMPPacket *packet, int queue)
     nSize = packetSize[packet->m_headerType];
     hSize = nSize;
     cSize = 0;
-    //相对的TimeStamp
+    //last不为不是0:相对的TimeStamp?绝对的TimeStamp
     t = packet->m_nTimeStamp - last;
 //    if(packet->m_packetType == 8)
 //        RTMP_LogInfo(RTMP_LOGINFO, "type: 0x%02x, csid:%d, t: %u",
@@ -4392,7 +4392,7 @@ RTMP_SendPacket(RTMP *r, RTMPPacket *packet, int queue)
         //一次性发送完毕
         if (nSize < nChunkSize)
             nChunkSize = nSize;
-
+        //否则一次性发送的数据体大小是一个nChunkSize
         RTMP_LogHexString(RTMP_LOGDEBUG2, (uint8_t *)header, hSize);
         RTMP_LogHexString(RTMP_LOGDEBUG2, (uint8_t *)buffer, nChunkSize);
         //写入数据到缓冲区或直接发送

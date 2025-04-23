@@ -126,6 +126,8 @@ int main()
 		//	t2.joinable();
 		//}
 	//}
+
+	//真正捕获摄像头[opencv]（或者桌面视频[ffmpeg内部API]）和麦克风[PortAudio]（或者桌面音频[ffmpeg内部API]）的数据进行推送呢？
 	{
 		PushWork pushwork; // 可以实例化多个，同时推送多路流
 

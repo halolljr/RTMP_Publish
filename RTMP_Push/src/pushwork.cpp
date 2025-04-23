@@ -69,7 +69,7 @@ RET_CODE PushWork::Init(const Properties &properties)
     desktop_width_  = properties.GetProperty("desktop_width", 1920);
     desktop_height_ = properties.GetProperty("desktop_height", 1080);
     desktop_format_ = properties.GetProperty("desktop_pixel_format", AV_PIX_FMT_YUV420P);
-    desktop_fps_ = properties.GetProperty("desktop_fps", 25);
+    desktop_fps_ = properties.GetProperty("desktop_fps", 24);
 
     // 视频编码属性
     video_width_  = properties.GetProperty("video_width", desktop_width_);     // 宽
@@ -231,6 +231,7 @@ RET_CODE PushWork::Init(const Properties &properties)
     // 设置视频pts的间隔
     double video_frame_duration = 1000.0 / video_encoder_->get_framerate();
     LogInfo("video_frame_duration:%lf", video_frame_duration);
+    AVPublishTime::GetInstance()->set_video_frame_duration(video_frame_duration);
     AVPublishTime::GetInstance()->set_video_pts_strategy(AVPublishTime::PTS_RECTIFY);//帧间隔矫正
     video_capturer = new VideoCapturer();
     Properties  vid_cap_properties;
