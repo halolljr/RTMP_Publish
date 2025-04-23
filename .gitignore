@@ -11,3 +11,6 @@ RTMP_Push/*pcm
 RTMP_Push/*.yuv
 RTMP_Push/*.mkv
 RTMP_Push/*.docx
+Capture_demo/*.x64/
+Capture_demo/*.dll
+Capture_demo/*.mp4

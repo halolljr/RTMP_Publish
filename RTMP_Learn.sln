@@ -5,6 +5,8 @@ VisualStudioVersion = 17.8.34316.72
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "RTMP_Push", "RTMP_Push\RTMP_Push.vcxproj", "{737E718B-67D5-4BD2-B4FC-64D14EF761B1}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Capture_demo", "Capture_demo\Capture_demo.vcxproj", "{7CA29C9A-CCC8-4007-B739-EB80274CB713}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -21,6 +23,14 @@ Global
 		{737E718B-67D5-4BD2-B4FC-64D14EF761B1}.Release|x64.Build.0 = Release|x64
 		{737E718B-67D5-4BD2-B4FC-64D14EF761B1}.Release|x86.ActiveCfg = Release|Win32
 		{737E718B-67D5-4BD2-B4FC-64D14EF761B1}.Release|x86.Build.0 = Release|Win32
+		{7CA29C9A-CCC8-4007-B739-EB80274CB713}.Debug|x64.ActiveCfg = Debug|x64
+		{7CA29C9A-CCC8-4007-B739-EB80274CB713}.Debug|x64.Build.0 = Debug|x64
+		{7CA29C9A-CCC8-4007-B739-EB80274CB713}.Debug|x86.ActiveCfg = Debug|Win32
+		{7CA29C9A-CCC8-4007-B739-EB80274CB713}.Debug|x86.Build.0 = Debug|Win32
+		{7CA29C9A-CCC8-4007-B739-EB80274CB713}.Release|x64.ActiveCfg = Release|x64
+		{7CA29C9A-CCC8-4007-B739-EB80274CB713}.Release|x64.Build.0 = Release|x64
+		{7CA29C9A-CCC8-4007-B739-EB80274CB713}.Release|x86.ActiveCfg = Release|Win32
+		{7CA29C9A-CCC8-4007-B739-EB80274CB713}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
