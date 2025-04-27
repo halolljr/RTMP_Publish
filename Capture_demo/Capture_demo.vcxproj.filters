@@ -24,13 +24,13 @@
     <ClCompile Include="VideoCapture.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="MP4Muxer.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
     <ClCompile Include="VideoEncoder.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="AudioEncoder.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="PushWork_.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
@@ -41,13 +41,13 @@
     <ClInclude Include="VideoCapture.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="MP4Muxer.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
     <ClInclude Include="VideoEncoder.h">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="AudioEncoder.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="PushWork_.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

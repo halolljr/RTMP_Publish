@@ -1,67 +1,51 @@
 #include "AudioEncoder.h"
-bool AudioEncoder::Open(int in_sample_rate, int in_channels, AVSampleFormat in_sample_fmt,
-	int out_sample_rate, int out_channels, AVSampleFormat out_sample_fmt) {
-	const AVCodec* codec = avcodec_find_encoder(AV_CODEC_ID_AAC);
-	codec_ctx = avcodec_alloc_context3(codec);
+#include <iostream>
 
-	codec_ctx->sample_rate = out_sample_rate;
-	codec_ctx->channels = out_channels;
-	codec_ctx->channel_layout = av_get_default_channel_layout(out_channels);
-	codec_ctx->sample_fmt = out_sample_fmt;
-	codec_ctx->time_base = AVRational{ 1, out_sample_rate };
-	codec_ctx->bit_rate = 128000;
+AudioEncoder::AudioEncoder() {}
 
-	if (avcodec_open2(codec_ctx, codec, nullptr) < 0) return false;
+AudioEncoder::~AudioEncoder() {
+	close();
+}
 
-	// 重采样器
-	swr_ctx = swr_alloc_set_opts(nullptr,
-		av_get_default_channel_layout(out_channels), out_sample_fmt, out_sample_rate,
-		av_get_default_channel_layout(in_channels), in_sample_fmt, in_sample_rate,
-		0, nullptr);
-	swr_init(swr_ctx);
+bool AudioEncoder::open(int sample_rate, int channels, int bitrate) {
+	AVCodec* encoder = avcodec_find_encoder(AV_CODEC_ID_AAC);
+	if (!encoder) {
+		std::cerr << "AAC encoder not found" << std::endl;
+		return false;
+	}
 
-	max_dst_nb_samples = 1024;
-	av_samples_alloc_array_and_samples(&dst_data, nullptr, out_channels,
-		max_dst_nb_samples, out_sample_fmt, 0);
+	enc_ctx = avcodec_alloc_context3(encoder);
+	enc_ctx->sample_rate = sample_rate;
+	enc_ctx->channel_layout = channels == 2 ? AV_CH_LAYOUT_STEREO : AV_CH_LAYOUT_MONO;
+	enc_ctx->channels = channels;
+	enc_ctx->bit_rate = bitrate;
+	enc_ctx->sample_fmt = AV_SAMPLE_FMT_FLTP; // 通常是AV_SAMPLE_FMT_FLTP
+	enc_ctx->time_base = { 1, sample_rate };
 
-	frame = av_frame_alloc();
-	frame->nb_samples = max_dst_nb_samples;
-	frame->channel_layout = codec_ctx->channel_layout;
-	frame->format = out_sample_fmt;
-	frame->sample_rate = out_sample_rate;
+	if (avcodec_open2(enc_ctx, encoder, nullptr) != 0) {
+		std::cerr << "Failed to open AAC encoder" << std::endl;
+		return false;
+	}
 
 	return true;
 }
 
-AVPacket* AudioEncoder::Encode(uint8_t** data, int nb_samples) {
-	dst_nb_samples = av_rescale_rnd(swr_get_delay(swr_ctx, codec_ctx->sample_rate) + nb_samples,
-		codec_ctx->sample_rate, codec_ctx->sample_rate, AV_ROUND_UP);
-
-	swr_convert(swr_ctx, dst_data, dst_nb_samples, (const uint8_t**)data, nb_samples);
-
-	frame->data[0] = dst_data[0];
-	if (codec_ctx->channels > 1)
-		frame->data[1] = dst_data[1];
-	frame->pts = pts;
-	frame->nb_samples = dst_nb_samples;
-	pts += dst_nb_samples;
-
-	avcodec_send_frame(codec_ctx, frame);
-	AVPacket* pkt = av_packet_alloc();
-	if (!pkt) {
-		return nullptr;
-	}
-	if (avcodec_receive_packet(codec_ctx, pkt) == 0)
-		return pkt;
-
-	av_packet_free(&pkt);
-	return nullptr;
+void AudioEncoder::close() {
+	if (enc_ctx) avcodec_free_context(&enc_ctx);
 }
 
-void AudioEncoder::Close() {
-	if (swr_ctx) swr_free(&swr_ctx);
-	if (codec_ctx) avcodec_free_context(&codec_ctx);
-	if (frame) av_frame_free(&frame);
-	if (dst_data) av_freep(&dst_data[0]);
-	av_freep(&dst_data);
+AVPacket* AudioEncoder::encode(AVFrame* frame) {
+	frame->pts = pts;
+	pts += frame->nb_samples;
+
+	if (avcodec_send_frame(enc_ctx, frame) != 0) {
+		return nullptr;
+	}
+
+	AVPacket* pkt = av_packet_alloc();
+	if (avcodec_receive_packet(enc_ctx, pkt) == 0) {
+		return pkt;
+	}
+	av_packet_free(&pkt);
+	return nullptr;
 }

@@ -1,78 +1,95 @@
 #include "VideoCapture.h"
-bool VideoCapture::Open(const std::string& device) {
-	AVInputFormat* ifmt = av_find_input_format("dshow");
-	if (avformat_open_input(&fmt_ctx, device.c_str(), ifmt, nullptr) < 0)
-		return false;
+#include <iostream>
 
-	if (avformat_find_stream_info(fmt_ctx, nullptr) < 0)
-		return false;
+VideoCapture::VideoCapture() {
+	avdevice_register_all();
+}
 
-	for (unsigned i = 0; i < fmt_ctx->nb_streams; ++i) {
+VideoCapture::~VideoCapture() {
+	close();
+}
+
+bool VideoCapture::open(std::string device_name) {
+	AVInputFormat* input_fmt = av_find_input_format("dshow");
+	if (avformat_open_input(&fmt_ctx, device_name.c_str(), input_fmt, nullptr) != 0) {
+		std::cerr << "Failed to open video device" << std::endl;
+		return false;
+	}
+	avformat_find_stream_info(fmt_ctx, nullptr);
+
+	for (unsigned int i = 0; i < fmt_ctx->nb_streams; i++) {
 		if (fmt_ctx->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO) {
-			video_stream_index = i;
+			stream_index = i;
 			break;
 		}
 	}
-	if (video_stream_index < 0) return false;
 
-	AVCodec* codec = avcodec_find_decoder(fmt_ctx->streams[video_stream_index]->codecpar->codec_id);
-	codec_ctx = avcodec_alloc_context3(codec);
-	avcodec_parameters_to_context(codec_ctx, fmt_ctx->streams[video_stream_index]->codecpar);
-	if (avcodec_open2(codec_ctx, codec, nullptr) < 0) return false;
+	AVCodec* decoder = avcodec_find_decoder(fmt_ctx->streams[stream_index]->codecpar->codec_id);
+	dec_ctx = avcodec_alloc_context3(decoder);
+	avcodec_parameters_to_context(dec_ctx, fmt_ctx->streams[stream_index]->codecpar);
+	avcodec_open2(dec_ctx, decoder, nullptr);
 
-	frame = av_frame_alloc();
-	pkt = av_packet_alloc();
+	sws_ctx = sws_getContext(
+		dec_ctx->width, dec_ctx->height, dec_ctx->pix_fmt,
+		dec_ctx->width, dec_ctx->height, AV_PIX_FMT_YUV420P,
+		SWS_BILINEAR, nullptr, nullptr, nullptr);
+	if (!sws_ctx) {
+		std::cerr << "Failed to initialize sws_ctx" << std::endl;
+		return false;
+	}
+
+	yuv_frame = av_frame_alloc();
+	yuv_frame->format = AV_PIX_FMT_YUV420P;
+	yuv_frame->width = dec_ctx->width;
+	yuv_frame->height = dec_ctx->height;
+	av_frame_get_buffer(yuv_frame, 0);
+
 	return true;
 }
 
-void VideoCapture::SetCallback(std::function<void(uint8_t* data[], int linesize[], int width, int height, int64_t pts)> cb) {
-	callback = std::move(cb);
-}
-
-void VideoCapture::Start() {
-	running = true;
-	thread = std::thread(&VideoCapture::CaptureLoop, this);
-}
-
-void VideoCapture::Stop() {
-	running = false;
-	if (thread.joinable()) thread.join();
-	if (pkt) av_packet_free(&pkt);
-	if (frame) av_frame_free(&frame);
-	if (codec_ctx) avcodec_free_context(&codec_ctx);
+void VideoCapture::close() {
+	if (yuv_frame) av_frame_free(&yuv_frame);
+	if (sws_ctx) sws_freeContext(sws_ctx);
+	if (dec_ctx) avcodec_free_context(&dec_ctx);
 	if (fmt_ctx) avformat_close_input(&fmt_ctx);
 }
 
-void VideoCapture::CaptureLoop() {
-	while (running) {
-		if (av_read_frame(fmt_ctx, pkt) >= 0 && pkt->stream_index == video_stream_index) {
-			if (avcodec_send_packet(codec_ctx, pkt) == 0) {
-				while (avcodec_receive_frame(codec_ctx, frame) == 0) {
-					if (callback) {
-						callback(frame->data, frame->linesize, frame->width, frame->height, frame->pts);
-					}
-				}
+AVFrame* VideoCapture::captureFrame() {
+	AVPacket pkt;
+	av_init_packet(&pkt);
+	if (av_read_frame(fmt_ctx, &pkt) >= 0 && pkt.stream_index == stream_index) {
+		if (avcodec_send_packet(dec_ctx, &pkt) == 0) {
+			AVFrame* frame = av_frame_alloc();
+			if (avcodec_receive_frame(dec_ctx, frame) == 0) {
+				sws_scale(sws_ctx, frame->data, frame->linesize, 0, frame->height,
+					yuv_frame->data, yuv_frame->linesize);
+				// 深拷贝一份yuv_frame
+				AVFrame* new_frame = av_frame_alloc();
+
+				// 先设置基本属性
+				new_frame->format = AV_PIX_FMT_YUV420P;
+				new_frame->width = yuv_frame->width;
+				new_frame->height = yuv_frame->height;
+
+				// 分配buffer
+				av_frame_get_buffer(new_frame, 32);
+				av_frame_make_writable(new_frame);
+
+				// 复制图像数据
+				av_image_copy(new_frame->data, new_frame->linesize,
+					(const uint8_t**)yuv_frame->data, yuv_frame->linesize,
+					AV_PIX_FMT_YUV420P, yuv_frame->width, yuv_frame->height);
+
+				// 拷贝时间戳等属性
+				av_frame_copy_props(new_frame, yuv_frame);
+
+				av_frame_free(&frame);
+				av_packet_unref(&pkt);
+				return new_frame;
 			}
-			av_packet_unref(pkt);
-		}
-		else {
-			std::this_thread::sleep_for(std::chrono::milliseconds(2));
+			av_frame_free(&frame);
 		}
 	}
-}
-
-int VideoCapture::GetWidth() const {
-	return codec_ctx ? codec_ctx->width : 640;
-}
-
-int VideoCapture::GetHeight() const {
-	return codec_ctx ? codec_ctx->height : 480;
-}
-
-int VideoCapture::GetFPS() const {
-	return 25;
-}
-
-AVPixelFormat VideoCapture::GetPixelFormat() const {
-	return codec_ctx ? codec_ctx->pix_fmt : AV_PIX_FMT_YUYV422;
+	av_packet_unref(&pkt);
+	return nullptr;
 }

@@ -119,7 +119,6 @@ int AACEncoder::Encode(AVFrame *frame,uint8_t* out,int out_len)
     pkt.size = out_len;
 
     //Encode audio，FFmpeg 调用编码 API 得到的音频帧（比如 AAC）默认就是裸流（raw frame），不带任何容器格式的 header，比如 ADTS
-    // 编码并不关心pts，真正需要pts的时候是在发包的时候
     //编码成功但不够数据的时候,got_ouput会为0，此时还需要送帧
     //建议使用新版本的
     //想想新版本要怎么做！！！！！！！！！！

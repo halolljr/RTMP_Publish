@@ -6,28 +6,22 @@
 extern "C" {
 #include <libavformat/avformat.h>
 #include <libavdevice/avdevice.h>
+#include <libswresample/swresample.h>
 }
 
 class AudioCapture {
 public:
-	bool Open(const std::string& device = u8"audio=耳机 (AirPods4)");
-	void SetCallback(std::function<void(uint8_t* data, int size, int64_t pts)> cb);
-	void Start();
-	void Stop();
+	AudioCapture();
+	~AudioCapture();
 
-	int GetSampleRate() const;
-	int GetChannels() const;
-	AVSampleFormat GetSampleFormat() const;
+	bool open(std::string device_name);
+	void close();
+	AVFrame* captureFrame(); // 返回重采样到目标格式的帧
 
 private:
-	void CaptureLoop();
-
 	AVFormatContext* fmt_ctx = nullptr;
-	AVCodecParameters* codecpar = nullptr;
-	AVPacket* pkt = nullptr;
-	int audio_stream_index = 0;
-	std::thread thread;
-	std::atomic<bool> running{ false };
-
-	std::function<void(uint8_t* data, int size, int64_t pts)> callback;
+	AVCodecContext* dec_ctx = nullptr;
+	SwrContext* swr_ctx = nullptr;
+	int stream_index = -1;
+	AVFrame* pcm_frame = nullptr;
 };

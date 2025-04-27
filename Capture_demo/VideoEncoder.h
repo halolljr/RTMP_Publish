@@ -5,13 +5,15 @@ extern "C" {
 }
 class VideoEncoder {
 public:
-	bool Open(int width, int height, int fps, AVPixelFormat in_pix_fmt = AV_PIX_FMT_YUV420P);
-	AVPacket* Encode(AVFrame* frame); // 输入YUV帧，输出压缩包
-	AVCodecContext* GetCodecContext() { return codec_ctx; }
-	void Close();
+	VideoEncoder();
+	~VideoEncoder();
+
+	bool open(int width, int height, int fps, int bitrate);
+	void close();
+	AVPacket* encode(AVFrame* frame); // 编码一帧，返回编码后的Packet（需要释放）
 
 private:
-	AVCodecContext* codec_ctx = nullptr;
-	AVFrame* frame = nullptr;
-	int64_t pts = 0;
+	AVCodecContext* enc_ctx = nullptr;
+	AVFrame* tmp_frame = nullptr;
+	int frame_pts = 0;
 };

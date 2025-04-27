@@ -1,62 +1,104 @@
 #include "AudioCapture.h"
-bool AudioCapture::Open(const std::string& device) {
-	AVInputFormat* ifmt = av_find_input_format("dshow");
-	if (avformat_open_input(&fmt_ctx, device.c_str(), ifmt, nullptr) < 0)
-		return false;
+#include <iostream>
 
-	if (avformat_find_stream_info(fmt_ctx, nullptr) < 0)
-		return false;
+AudioCapture::AudioCapture() {
+	avdevice_register_all();
+}
 
-	for (unsigned i = 0; i < fmt_ctx->nb_streams; ++i) {
+AudioCapture::~AudioCapture() {
+	close();
+}
+
+bool AudioCapture::open(std::string device_name) {
+	AVInputFormat* input_fmt = av_find_input_format("dshow");
+	if (avformat_open_input(&fmt_ctx, device_name.c_str(), input_fmt, nullptr) != 0) {
+		std::cerr << "Failed to open audio device\n";
+		return false;
+	}
+	avformat_find_stream_info(fmt_ctx, nullptr);
+
+	for (unsigned int i = 0; i < fmt_ctx->nb_streams; i++) {
 		if (fmt_ctx->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_AUDIO) {
-			audio_stream_index = i;
+			stream_index = i;
 			break;
 		}
 	}
-	codecpar = fmt_ctx->streams[audio_stream_index]->codecpar;
-	pkt = av_packet_alloc();
+
+	AVCodec* decoder = avcodec_find_decoder(fmt_ctx->streams[stream_index]->codecpar->codec_id);
+	dec_ctx = avcodec_alloc_context3(decoder);
+	avcodec_parameters_to_context(dec_ctx, fmt_ctx->streams[stream_index]->codecpar);
+	avcodec_open2(dec_ctx, decoder, nullptr);
+
+	swr_ctx = swr_alloc_set_opts(nullptr,
+		AV_CH_LAYOUT_STEREO, AV_SAMPLE_FMT_FLTP, 44100,
+		av_get_default_channel_layout(dec_ctx->channels), (AVSampleFormat)dec_ctx->sample_fmt, dec_ctx->sample_rate,
+		0, nullptr);
+	if (swr_init(swr_ctx) < 0) {
+		std::cerr << "Failed to initialize swr_ctx" << std::endl;
+		return false;
+	}
+
+	pcm_frame = av_frame_alloc();
+	pcm_frame->format = AV_SAMPLE_FMT_FLTP;
+	pcm_frame->channel_layout = AV_CH_LAYOUT_STEREO;
+	pcm_frame->sample_rate = 44100;
+	pcm_frame->nb_samples = 1024;
+	av_frame_get_buffer(pcm_frame, 0);
+
 	return true;
 }
 
-void AudioCapture::SetCallback(std::function<void(uint8_t* data, int size, int64_t pts)> cb) {
-	callback = std::move(cb);
-}
-
-void AudioCapture::Start() {
-	running = true;
-	thread = std::thread(&AudioCapture::CaptureLoop, this);
-}
-
-void AudioCapture::Stop() {
-	running = false;
-	if (thread.joinable()) thread.join();
-	if (pkt) av_packet_free(&pkt);
+void AudioCapture::close() {
+	if (pcm_frame) av_frame_free(&pcm_frame);
+	if (swr_ctx) swr_free(&swr_ctx);
+	if (dec_ctx) avcodec_free_context(&dec_ctx);
 	if (fmt_ctx) avformat_close_input(&fmt_ctx);
 }
 
-void AudioCapture::CaptureLoop() {
-	while (running) {
-		if (av_read_frame(fmt_ctx, pkt) >= 0) {
-			if (callback) {
-				callback(pkt->data, pkt->size, pkt->pts);
+AVFrame* AudioCapture::captureFrame() {
+	AVPacket pkt;
+	av_init_packet(&pkt);
+	if (av_read_frame(fmt_ctx, &pkt) >= 0 && pkt.stream_index == stream_index) {
+		if (avcodec_send_packet(dec_ctx, &pkt) == 0) {
+			AVFrame* frame = av_frame_alloc();
+			if (avcodec_receive_frame(dec_ctx, frame) == 0) {
+				swr_convert(swr_ctx, pcm_frame->data, pcm_frame->nb_samples,
+					(const uint8_t**)frame->data, frame->nb_samples);
+				// 深拷贝一份pcm_frame
+				AVFrame* new_frame = av_frame_alloc();
+				if (!new_frame) {
+					av_frame_free(&frame);
+					av_packet_unref(&pkt);
+					return nullptr;
+				}
+
+				// 设置格式信息
+				new_frame->channels = pcm_frame->channels;
+				new_frame->channel_layout = pcm_frame->channel_layout;
+				new_frame->format = pcm_frame->format;  // 注意一定要设 format！
+				new_frame->sample_rate = pcm_frame->sample_rate;
+				new_frame->nb_samples = pcm_frame->nb_samples;
+
+				// 分配内存
+				av_samples_alloc(new_frame->data, new_frame->linesize,
+					new_frame->channels, new_frame->nb_samples,
+					(AVSampleFormat)new_frame->format, 0);
+
+				// 拷贝数据
+				av_samples_copy(new_frame->data, pcm_frame->data,
+					0, 0, pcm_frame->nb_samples, pcm_frame->channels, (AVSampleFormat)new_frame->format);
+
+				// 拷贝时间戳等
+				av_frame_copy_props(new_frame, pcm_frame);
+				// 清理
+				av_frame_free(&frame);
+				av_packet_unref(&pkt);
+
+				return new_frame;
 			}
-			av_packet_unref(pkt);
-		}
-		else {
-			//av_usleep(1000);
-			std::this_thread::sleep_for(std::chrono::milliseconds(2));
+			av_frame_free(&frame);
 		}
 	}
-}
-
-int AudioCapture::GetSampleRate() const {
-	return codecpar ? codecpar->sample_rate : 44100;
-}
-
-int AudioCapture::GetChannels() const {
-	return codecpar ? codecpar->channels : 2;
-}
-
-AVSampleFormat AudioCapture::GetSampleFormat() const {
-	return AV_SAMPLE_FMT_S16;  // 一般 dshow 是 s16 格式
+	av_packet_unref(&pkt);
+	return nullptr;
 }

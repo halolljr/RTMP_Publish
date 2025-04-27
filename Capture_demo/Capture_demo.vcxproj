@@ -133,14 +133,14 @@
     <ClCompile Include="AudioCapture.cpp" />
     <ClCompile Include="AudioEncoder.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="MP4Muxer.cpp" />
+    <ClCompile Include="PushWork_.cpp" />
     <ClCompile Include="VideoCapture.cpp" />
     <ClCompile Include="VideoEncoder.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AudioCapture.h" />
     <ClInclude Include="AudioEncoder.h" />
-    <ClInclude Include="MP4Muxer.h" />
+    <ClInclude Include="PushWork_.h" />
     <ClInclude Include="VideoCapture.h" />
     <ClInclude Include="VideoEncoder.h" />
   </ItemGroup>
