@@ -3,16 +3,16 @@
 
 int main() {
 	PushWork pushWork;
-	if (!pushWork.init()) {
+	if (!pushWork.Init()) {
 		std::cerr << "Failed to initialize PushWork" << std::endl;
 		return -1;
 	}
 
-	pushWork.start();
-	std::cout << "PushWork started. Press Enter to stop..." << std::endl;
+	pushWork.Start();
+	std::cout << "PushWork started..." << std::endl << "Press Enter to stop..." << std::endl;
 	std::cin.get();
 
-	pushWork.stop();
+	pushWork.Close();
 	std::cout << "PushWork stopped." << std::endl;
 	return 0;
 }

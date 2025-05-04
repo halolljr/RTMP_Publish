@@ -5,32 +5,44 @@
 extern "C" {
 #include <libavformat/avformat.h>
 #include <libavdevice/avdevice.h>
-#include <libswscale/swscale.h>
-#include <libavutil/imgutils.h>
+#include <libavutil/time.h>
+#include <libavutil/pixfmt.h >
 }
 
 class VideoCapture {
 public:
 	VideoCapture();
 	~VideoCapture();
-
-	bool open(std::string device_name);
-	void close();
-	AVFrame* captureFrame(); // 返回转换成 YUV420P 的帧
-
+	bool Open(std::string device_name);
+	void Start();
+	void Stop();
+	void Restart();
+	void Close();
+	template<class CallBack>
+	void Set_Callback(CallBack&& cb) {
+		call_back = VideoCallback(std::forward<CallBack>(cb));
+	}
 	int getWidth() {
-		return fmt_ctx->streams[stream_index]->codecpar->width;
+		return fmt_ctx->streams[stream_index_]->codecpar->width;
 	}
 	int getHeight() {
-		return fmt_ctx->streams[stream_index]->codecpar->height;
+		return fmt_ctx->streams[stream_index_]->codecpar->height;
 	}
 	int getFps() {
-		return av_q2d(fmt_ctx->streams[stream_index]->avg_frame_rate);
+		return av_q2d(fmt_ctx->streams[stream_index_]->avg_frame_rate);
 	}
 private:
+	int captureFrame();
+private:
+	AVDictionary* options = nullptr;
 	AVFormatContext* fmt_ctx = nullptr;
 	AVCodecContext* dec_ctx = nullptr;
-	SwsContext* sws_ctx = nullptr;
-	int stream_index = -1;
-	AVFrame* yuv_frame = nullptr;
+	AVPacket* dec_pkt = nullptr;
+	AVFrame* dec_frame = nullptr;
+	int stream_index_ = -1;
+	std::thread* capture_thread_ = nullptr;
+	std::atomic_bool running_ = false;
+	using VideoCallback = std::function<int(AVStream* input_st, enum AVPixelFormat pixformat, AVFrame* pframe, int64_t lTimeStamp)>;
+	VideoCallback call_back = nullptr;
+	//AVFrame* yuv_frame = nullptr;
 };

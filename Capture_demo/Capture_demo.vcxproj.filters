@@ -33,6 +33,9 @@
     <ClCompile Include="PushWork_.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="Muxer.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AudioCapture.h">
@@ -48,6 +51,9 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="PushWork_.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Muxer.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

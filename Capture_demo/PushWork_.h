@@ -4,44 +4,46 @@
 #include "AudioCapture.h"
 #include "VideoEncoder.h"
 #include "AudioEncoder.h"
+#include "Muxer.h"
 #include <thread>
 #include <atomic>
 #include <mutex>
 #include <queue>
+extern "C" {
+#include <libswscale/swscale.h>
+#include <libswresample/swresample.h>
+#include <libavutil/time.h>
+#include <libavutil/imgutils.h>
+}
 class PushWork {
 public:
 	PushWork();
 	~PushWork();
 
-	bool init();
-	void start();
-	void stop();
+	bool Init();
+	void Start();
+	void Stop();
+	void Restart();
+	void Close();
+private:
+	int write_video_frame(AVStream* input_st, enum AVPixelFormat pix_fmt, AVFrame* pframe, int64_t lTimeStramp);
+	int wirte_audio_frame(AVStream* input_st, AVFrame* input_frame, int64_t lTimeStramp);
+private:
+	Muxer* muxer_ = nullptr;
 
-private:
-	void audioCaptureThread();
-	void audioEncodeThread();
-	void videoCaptureThread();
-	void videoEncodeThread();
-private:
 	VideoCapture video_cap;
 	AudioCapture audio_cap;
+	
 	VideoEncoder video_enc;
+	SwsContext* img_convert_ctx = nullptr;
+	AVFrame* pFrameYUV = nullptr;
+	uint8_t* m_out_buffer = nullptr;
+	AVPacket enc_pkt;
+	AVRational video_time_base_q = { 1, AV_TIME_BASE };
+	int  m_vid_framecnt = 0;
+
 	AudioEncoder audio_enc;
-	// 音频相关
-	std::queue<AVFrame*> audio_frame_queue;
-	std::mutex audio_queue_mutex;
-	std::condition_variable audio_queue_cv;
+	SwrContext* aud_convert_ctx = nullptr;
 
-	// 视频相关
-	std::queue<AVFrame*> video_frame_queue;
-	std::mutex video_queue_mutex;
-	std::condition_variable video_queue_cv;
-
-	std::thread audio_Encode_Thread;
-	std::thread audio_Capture_Thread;
-
-	std::thread video_Capture_Thread;
-	std::thread video_Encode_Thread;
-
-	std::atomic<bool> running;
+	int64_t start_time = 0;
 };

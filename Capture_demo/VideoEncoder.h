@@ -10,10 +10,21 @@ public:
 
 	bool open(int width, int height, int fps, int bitrate);
 	void close();
-	AVPacket* encode(AVFrame* frame); // 编码一帧，返回编码后的Packet（需要释放）
-
+	bool encode(AVFrame* frame,AVPacket* pkt); 
+	AVCodecContext* GetCodecContext(){
+		return enc_ctx;
+	}
+	int GetWidth() {
+		return enc_ctx->width;
+	}
+	int GetHeight() {
+		return enc_ctx->height;
+	}
+	enum AVPixelFormat GetAVPixelFormat() {
+		return enc_ctx->pix_fmt;
+	}
 private:
+	AVDictionary* param = nullptr;
 	AVCodecContext* enc_ctx = nullptr;
-	AVFrame* tmp_frame = nullptr;
 	int frame_pts = 0;
 };

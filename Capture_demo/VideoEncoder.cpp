@@ -23,39 +23,33 @@ bool VideoEncoder::open(int width, int height, int fps, int bitrate) {
 	enc_ctx->bit_rate = bitrate;
 	enc_ctx->gop_size = fps; // 1ÃëÒ»¸öIÖ¡
 	enc_ctx->max_b_frames = 0;
-
-	av_opt_set(enc_ctx->priv_data, "preset", "ultrafast", 0);
-
-	if (avcodec_open2(enc_ctx, encoder, nullptr) != 0) {
+	enc_ctx->qmin = 10;
+	enc_ctx->qmax = 31;
+	av_dict_set(&param, "preset", "fast", 0);
+	av_dict_set(&param, "tune", "zerolatency", 0);
+	if (avcodec_open2(enc_ctx, encoder, &param) != 0) {
 		std::cerr << "Failed to open H264 encoder" << std::endl;
 		return false;
 	}
-
-	tmp_frame = av_frame_alloc();
-	tmp_frame->format = enc_ctx->pix_fmt;
-	tmp_frame->width = width;
-	tmp_frame->height = height;
-	av_frame_get_buffer(tmp_frame, 0);
 
 	return true;
 }
 
 void VideoEncoder::close() {
-	if (tmp_frame) av_frame_free(&tmp_frame);
 	if (enc_ctx) avcodec_free_context(&enc_ctx);
+	if (param) av_dict_free(&param);
 }
 
-AVPacket* VideoEncoder::encode(AVFrame* frame) {
-	frame->pts = frame_pts++;
-
-	if (avcodec_send_frame(enc_ctx, frame) != 0) {
-		return nullptr;
+bool VideoEncoder::encode(AVFrame* frame,AVPacket* pkt) {
+	int ret = avcodec_send_frame(enc_ctx, frame);
+	if (ret < 0 && ret != AVERROR(EAGAIN)) {
+		return false;
 	}
 
-	AVPacket* pkt = av_packet_alloc();
-	if (avcodec_receive_packet(enc_ctx, pkt) == 0) {
-		return pkt;
+	ret = avcodec_receive_packet(enc_ctx, pkt);
+	if (ret == 0) {
+		return true;
 	}
-	av_packet_free(&pkt);
-	return nullptr;
+
+	return false;
 }

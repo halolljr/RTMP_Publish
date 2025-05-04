@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -133,6 +133,7 @@
     <ClCompile Include="AudioCapture.cpp" />
     <ClCompile Include="AudioEncoder.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="Muxer.cpp" />
     <ClCompile Include="PushWork_.cpp" />
     <ClCompile Include="VideoCapture.cpp" />
     <ClCompile Include="VideoEncoder.cpp" />
@@ -140,6 +141,7 @@
   <ItemGroup>
     <ClInclude Include="AudioCapture.h" />
     <ClInclude Include="AudioEncoder.h" />
+    <ClInclude Include="Muxer.h" />
     <ClInclude Include="PushWork_.h" />
     <ClInclude Include="VideoCapture.h" />
     <ClInclude Include="VideoEncoder.h" />
