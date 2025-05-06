@@ -6,7 +6,7 @@ AudioCapture::AudioCapture() {
 }
 
 AudioCapture::~AudioCapture() {
-	Close();
+	//Close();
 }
 
 bool AudioCapture::Open(std::string device_name) {
@@ -35,9 +35,17 @@ bool AudioCapture::Open(std::string device_name) {
 	
 	if (dec_pkt == nullptr) {
 		dec_pkt = av_packet_alloc();
+		if (nullptr == dec_pkt) {
+			std::cerr << "Could not av_packet_alloc()" << std::endl;
+			return false;
+		}
 	}
 	if (dec_frame == nullptr) {
 		dec_frame = av_frame_alloc();
+		if (nullptr == dec_frame) {
+			std::cerr << "Could not av_frame_alloc()" << std::endl;
+			return false;
+		}
 	}
 	//swr_ctx = swr_alloc_set_opts(nullptr,
 	//	AV_CH_LAYOUT_STEREO, AV_SAMPLE_FMT_FLTP, 44100,
@@ -54,7 +62,7 @@ bool AudioCapture::Open(std::string device_name) {
 	//pcm_frame->sample_rate = 44100;
 	//pcm_frame->nb_samples = 1024;
 	//av_frame_get_buffer(pcm_frame, 0);
-
+	av_dump_format(fmt_ctx, 0, device_name.c_str(), 0);
 	return true;
 }
 
@@ -76,8 +84,10 @@ void AudioCapture::Restart()
 
 void AudioCapture::Close() {
 	Stop();
-	if (capture_thread_->joinable()) {
-		capture_thread_->join();
+	if (nullptr != capture_thread_) {
+		if (capture_thread_->joinable()) {
+			capture_thread_->join();
+		}
 	}
 	if (dec_pkt) av_packet_free(&dec_pkt);
 	if (dec_frame) av_frame_free(&dec_frame);

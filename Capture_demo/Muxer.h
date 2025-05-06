@@ -23,7 +23,6 @@ public:
 		return audio_st;
 	}
 private:
-	std::mutex mtx;
 	std::string out_put_filename;
 	//·â×°ÈÝÆ÷Êä³ö
 	AVFormatContext* ofmt_ctx = nullptr;

@@ -16,7 +16,12 @@ bool Muxer::Open(const char* file_name, AVCodecContext* video_ctx, AVCodecContex
 		std::cerr << "Failed to allocate output context!" << std::endl;
 		return false;
 	}
-
+	if (ofmt_ctx->oformat->flags & AVFMT_GLOBALHEADER) {
+		video_ctx->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
+	}
+	if (ofmt_ctx->oformat->flags & AVFMT_GLOBALHEADER) {
+		audio_ctx->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
+	}
 	// 创建视频流
 	video_st = avformat_new_stream(ofmt_ctx, nullptr);
 	if (!video_st) {
@@ -68,7 +73,6 @@ void Muxer::Close()
 
 int Muxer::sendPacket(AVPacket* pkt)
 {
-	std::lock_guard<std::mutex> lck(mtx);
 	int ret = av_interleaved_write_frame(ofmt_ctx, pkt);
 	if (ret < 0) {
 		char tmpErrString[128] = { 0 };

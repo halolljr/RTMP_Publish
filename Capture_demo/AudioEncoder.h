@@ -11,7 +11,7 @@ public:
 
 	bool open(int sample_rate, int channels, int bitrate);
 	void close();
-	AVPacket* encode(AVFrame* frame); // 编码一帧，返回编码后的Packet（需要释放）
+	bool encode(AVFrame* frame, AVPacket* pkt);
 	AVCodecContext* GetCodecContext() {
 		return enc_ctx;
 	}

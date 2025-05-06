@@ -4,7 +4,7 @@
 VideoEncoder::VideoEncoder() {}
 
 VideoEncoder::~VideoEncoder() {
-	close();
+	//close();
 }
 
 bool VideoEncoder::open(int width, int height, int fps, int bitrate) {

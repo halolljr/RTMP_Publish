@@ -6,7 +6,7 @@ VideoCapture::VideoCapture() {
 }
 
 VideoCapture::~VideoCapture() {
-	Close();
+	//Close();
 }
 
 void VideoCapture::Start()
@@ -31,7 +31,7 @@ bool VideoCapture::Open(std::string device_name) {
 		return false;
 	}
 	AVInputFormat* input_fmt = av_find_input_format("dshow");
-	if (avformat_open_input(&fmt_ctx, device_name.c_str(), input_fmt, &options) != 0) {
+	if (avformat_open_input(&fmt_ctx, device_name.c_str(), input_fmt, nullptr) != 0) {
 		std::cerr << "Failed to open video device" << std::endl;
 		return false;
 	}
@@ -51,24 +51,34 @@ bool VideoCapture::Open(std::string device_name) {
 
 	if (dec_pkt == nullptr) {
 		dec_pkt = av_packet_alloc();
+		if (nullptr == dec_pkt) {
+			std::cerr << "Could not av_packet_alloc()" << std::endl;
+			return false;
+		}
 	}
 	if (dec_frame == nullptr) {
 		dec_frame = av_frame_alloc();
+		if (nullptr == dec_frame) {
+			std::cerr << "Could not av_frame_alloc()" << std::endl;
+			return false;
+		}
 	}
 	//yuv_frame = av_frame_alloc();
 	//yuv_frame->format = AV_PIX_FMT_YUV420P;
 	//yuv_frame->width = dec_ctx->width;
 	//yuv_frame->height = dec_ctx->height;
 	//av_frame_get_buffer(yuv_frame, 0);
-
+	av_dump_format(fmt_ctx, 0, device_name.c_str(), 0);
 	return true;
 }
 
 void VideoCapture::Close() {
 	//if (yuv_frame) av_frame_free(&yuv_frame);
 	Stop();
-	if (capture_thread_->joinable()) {
-		capture_thread_->join();
+	if (nullptr != capture_thread_) {
+		if (capture_thread_->joinable()) {
+			capture_thread_->join();
+		}
 	}
 	if (dec_pkt) av_packet_free(&dec_pkt);
 	if (dec_frame) av_frame_free(&dec_frame);

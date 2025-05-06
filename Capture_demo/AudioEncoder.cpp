@@ -4,7 +4,7 @@
 AudioEncoder::AudioEncoder() {}
 
 AudioEncoder::~AudioEncoder() {
-	close();
+	//close();
 }
 
 bool AudioEncoder::open(int sample_rate, int channels, int bitrate) {
@@ -21,7 +21,6 @@ bool AudioEncoder::open(int sample_rate, int channels, int bitrate) {
 	enc_ctx->bit_rate = bitrate;
 	enc_ctx->sample_fmt = AV_SAMPLE_FMT_FLTP; // Í¨³£ÊÇAV_SAMPLE_FMT_FLTP
 	enc_ctx->time_base = { 1, sample_rate };
-
 	if (avcodec_open2(enc_ctx, encoder, nullptr) != 0) {
 		std::cerr << "Failed to open AAC encoder" << std::endl;
 		return false;
@@ -34,18 +33,15 @@ void AudioEncoder::close() {
 	if (enc_ctx) avcodec_free_context(&enc_ctx);
 }
 
-AVPacket* AudioEncoder::encode(AVFrame* frame) {
-	frame->pts = pts;
-	pts += frame->nb_samples;
-
-	if (avcodec_send_frame(enc_ctx, frame) != 0) {
-		return nullptr;
+bool AudioEncoder::encode(AVFrame* frame , AVPacket* pkt) {
+	int ret = avcodec_send_frame(enc_ctx, frame);
+	if (ret < 0 && ret != AVERROR(EAGAIN)) {
+		return false;
+	}
+	ret = avcodec_receive_packet(enc_ctx, pkt);
+	if (ret == 0) {
+		return true;
 	}
 
-	AVPacket* pkt = av_packet_alloc();
-	if (avcodec_receive_packet(enc_ctx, pkt) == 0) {
-		return pkt;
-	}
-	av_packet_free(&pkt);
-	return nullptr;
+	return false;
 }
