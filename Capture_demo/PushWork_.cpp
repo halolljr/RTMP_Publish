@@ -165,7 +165,7 @@ void PushWork::Close()
 		//释放每个通道的buffer
 		av_freep(&m_converted_input_samples[0]);
 		//释放通道数组本身
-		free(m_converted_input_samples);
+		//free(m_converted_input_samples);
 		m_converted_input_samples = nullptr;
 	}
 }
@@ -249,10 +249,9 @@ int PushWork::write_video_frame(AVStream* input_st, enum AVPixelFormat pix_fmt, 
 		//int64_t now_time = av_gettime() - start_time;						
 		//if ((pts_time > now_time) && ((vid_next_pts + pts_time - now_time)<aud_next_pts))
 		//av_usleep(pts_time - now_time);
-		{
-			std::lock_guard<std::mutex> lck(mtx_);
-			muxer_->sendPacket(&enc_pkt);
-		}
+		mtx.lock();
+		muxer_->sendPacket(&enc_pkt);
+		mtx.unlock();
 	}
 	else {
 		std::cerr << "Failed to encode frame" << std::endl;
@@ -367,16 +366,15 @@ int PushWork::wirte_audio_frame(AVStream* input_st, AVFrame* input_frame, int64_
 			//output_packet.duration = output_frame->nb_samples;
 #else
 			audio_enc_pkt.pts = av_rescale_q(m_nLastAudioPresentationTime, audio_time_base_q, muxer_->Get_Audio_AVStream()->time_base);
-			//audio_enc_pkt.dts = audio_enc_pkt.pts;
+			audio_enc_pkt.dts = audio_enc_pkt.pts;
 #endif
 			//int64_t pts_time = av_rescale_q(output_packet.pts, time_base, time_base_q);
 			//int64_t now_time = av_gettime() - start_time;
 			//if ((pts_time > now_time) && ((aud_next_pts + pts_time - now_time)<vid_next_pts))
 			//av_usleep(pts_time - now_time);
-			{
-				std::lock_guard<std::mutex> lck(mtx_);
-				muxer_->sendPacket(&audio_enc_pkt);
-			}
+			mtx.lock();
+			muxer_->sendPacket(&audio_enc_pkt);
+			mtx.unlock();
 			av_packet_unref(&audio_enc_pkt);
 		}
 		m_out_samples += out_put_frame->nb_samples;

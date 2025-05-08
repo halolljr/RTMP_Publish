@@ -30,8 +30,7 @@ private:
 private:
 	//输出文件封装
 	Muxer* muxer_ = nullptr;
-	std::mutex mtx_;
-
+	std::mutex mtx;
 	//捕获麦克风摄像头
 	VideoCapture video_cap;
 	AudioCapture audio_cap;
@@ -56,5 +55,6 @@ private:
 	int64_t m_nLastAudioPresentationTime = 0;
 	int m_aud_framecnt = 0;
 
+	//时间戳
 	int64_t start_time = 0;
 };
